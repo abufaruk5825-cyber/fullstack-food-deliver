@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="am" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ኮቻ ኢትስ - ኮምቦልቻ ውስጥ ፈጣን ምግብ አቅራቢ | KochaEats - Fast food delivery in Kombolcha"
+    />
+    <meta
+      name="keywords"
+      content="KochaEats, Kombolcha food delivery, ኮምቦልቻ ምግብ, Ethiopian food, Telebirr payment"
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="kochaEats.css" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#1a237e" />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+
+    <title>KochaEats - ኮምቦልቻ ምግብ አቅራቢ | Kombolcha Food Delivery</title>
+
+    <style>
+      /* Loading Animation */
+      .page-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--dark-light) 100%
+        );
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+
+      .page-loader.hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .loader-logo {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 20px;
+        animation: pulse 1.5s infinite;
+      }
+
+      .loader-text {
+        color: var(--white);
+        font-size: 1.5rem;
+        font-family: var(--font-ethiopic);
+        margin-top: 15px;
+        text-align: center;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.8;
+        }
+      }
+
+      /* Scroll to Top Button */
+      .scroll-top-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(
+          135deg,
+          var(--secondary),
+          var(--secondary-dark)
+        );
+        color: var(--white);
+        border-radius: var(--radius-round);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        cursor: pointer;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+        transition: all var(--transition-normal);
+        border: 2px solid var(--white);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .scroll-top-btn.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .scroll-top-btn:hover {
+        background: linear-gradient(
+          135deg,
+          var(--secondary-dark),
+          var(--secondary)
+        );
+        transform: translateY(-5px) scale(1.1);
+        box-shadow: var(--shadow-xl);
+      }
+
+      
+      /* Stats Badge */
+      .stats-badge {
+        position: fixed;
+        top: 80px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: var(--radius-lg);
+        padding: 15px;
+        box-shadow: var(--shadow-lg);
+        z-index: 999;
+        display: none;
+        animation: slideInLeft 0.3s ease;
+        border: 1px solid var(--light-dark);
+      }
+
+      @keyframes slideInLeft {
+        from {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .stats-badge.active {
+        display: block;
+      }
+
+      .stats-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .stats-header h4 {
+        margin: 0;
+        color: var(--primary);
+        font-size: 1rem;
+      }
+
+      .stats-content {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+      }
+
+      .stat-item i {
+        color: var(--secondary);
+        width: 20px;
+      }
+
+      .stat-item span:last-child {
+        font-weight: 600;
+        color: var(--dark);
+      }
+
+      /* Image Zoom Overlay */
+      .image-zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .zoomed-image {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-xl);
+        animation: zoomIn 0.3s ease;
+      }
+
+      @keyframes zoomIn {
+        from {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Password Strength Indicator */
+      .password-strength-container {
+        margin: 10px 0;
+      }
+
+      .strength-bar {
+        height: 5px;
+        border-radius: var(--radius-sm);
+        transition: width 0.3s ease;
+      }
+
+      .strength-weak {
+        width: 30%;
+        background-color: var(--danger);
+      }
+      .strength-medium {
+        width: 60%;
+        background-color: var(--warning);
+      }
+      .strength-good {
+        width: 80%;
+        background-color: var(--info);
+      }
+      .strength-strong {
+        width: 100%;
+        background-color: var(--success);
+      }
+
+      .strength-text {
+        font-size: 0.85rem;
+        margin-top: 5px;
+        display: block;
+      }
+
+      .strength-weak + .strength-text {
+        color: var(--danger);
+      }
+      .strength-medium + .strength-text {
+        color: var(--warning);
+      }
+      .strength-good + .strength-text {
+        color: var(--info);
+      }
+      .strength-strong + .strength-text {
+        color: var(--success);
+      }
+
+      /* Order History Modal */
+      .order-history {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .order-history-item {
+        background: var(--light);
+        border-radius: var(--radius-md);
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid var(--primary);
+      }
+
+      .order-history-item.completed {
+        border-left-color: var(--success);
+      }
+
+      .order-history-item.cancelled {
+        border-left-color: var(--danger);
+      }
+
+      .order-history-item.preparing {
+        border-left-color: var(--warning);
+      }
+
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .order-date {
+        color: var(--gray);
+        font-size: 0.85rem;
+        display: block;
+      }
+
+      .order-status {
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .order-status.preparing {
+        background-color: rgba(255, 145, 0, 0.1);
+        color: var(--warning);
+      }
+
+      .order-status.completed {
+        background-color: rgba(0, 200, 83, 0.1);
+        color: var(--success);
+      }
+
+      .order-status.cancelled {
+        background-color: rgba(213, 0, 0, 0.1);
+        color: var(--danger);
+      }
+
+      .order-details {
+        display: flex;
+        justify-content: space-between;
+        color: var(--gray);
+        font-size: 0.9rem;
+      }
+
+      /* Special Announcement Bar */
+      .announcement-bar {
+        background: linear-gradient(
+          90deg,
+          var(--primary),
+          var(--primary-light)
+        );
+        color: var(--white);
+        padding: 10px 0;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .announcement-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        animation: scrollAnnouncement 30s linear infinite;
+      }
+
+      @keyframes scrollAnnouncement {
+        0% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(-100%);
+        }
+      }
+
+      .announcement-text {
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+
+      .announcement-text i {
+        color: var(--secondary);
+        margin-right: 8px;
+      }
+
+      /* Coming Soon Badges */
+      .coming-soon {
+        position: relative;
+      }
+
+      .coming-soon::after {
+        content: "Coming Soon";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: var(--secondary);
+        color: var(--white);
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        z-index: 2;
+      }
+
+      /* No Items Message */
+      .no-items-message {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--gray);
+      }
+
+      .no-items-message i {
+        font-size: 3rem;
+        color: var(--gray-light);
+        margin-bottom: 15px;
+      }
+
+      .no-items-message h4 {
+        color: var(--gray);
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+      }
+
+      /* Quick Order Modal */
+      .quick-order-modal .modal-dialog {
+        max-width: 400px;
+      }
+
+      .quick-order-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-bottom: 1px solid var(--light-dark);
+        cursor: pointer;
+        transition: var(--transition-fast);
+      }
+
+      .quick-order-item:hover {
+        background-color: var(--light);
+      }
+
+      .quick-order-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius-round);
+        object-fit: cover;
+      }
+
+      .quick-order-item .content {
+        flex: 1;
+      }
+
+      .quick-order-item .name {
+        font-weight: 500;
+        margin-bottom: 5px;
+      }
+
+      .quick-order-item .price {
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      /* User/Rider/Admin Badges */
+      .rider-badge,
+      .admin-badge {
+        background: rgba(255, 109, 0, 0.1);
+        color: var(--secondary);
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        margin-left: 5px;
+      }
+
+      .admin-badge {
+        background: rgba(26, 35, 126, 0.1);
+        color: var(--primary);
+      }
+
+      /* Special Category Box */
+      .special-category-box {
+        background: linear-gradient(135deg, #1a237e 0%, #000051 100%);
+        color: white;
+        border-radius: var(--radius-lg);
+        padding: 25px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 30px;
+      }
+
+      .special-category-box::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+      }
+
+      .special-category-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .special-category-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-round);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+
+      .special-category-title h3 {
+        margin: 0;
+        color: var(--white);
+        font-size: 1.5rem;
+      }
+
+      .special-category-title p {
+        margin: 5px 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+      }
+
+      .special-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+      }
+
+      .special-item {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: var(--radius-md);
+        padding: 15px;
+        text-align: center;
+        transition: var(--transition-fast);
+        cursor: pointer;
+      }
+
+      .special-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-5px);
+      }
+
+      .special-item img {
+        width: 60px;
+        height: 60px;
+        border-radius: var(--radius-round);
+        object-fit: cover;
+        margin-bottom: 10px;
+        border: 3px solid var(--white);
+      }
+
+      .special-item .name {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: var(--white);
+      }
+
+      .special-item .price {
+        color: var(--secondary);
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Page Loader -->
+    <div class="page-loader" id="pageLoader">
+      <div class="loader-logo">
+        <svg
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            stroke="#ff6d00"
+            stroke-width="3"
+            stroke-dasharray="10 5"
+          />
+          <path
+            d="M30 40L50 70L70 40"
+            stroke="#1a237e"
+            stroke-width="5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="50" cy="50" r="20" fill="#ff6d00" opacity="0.7">
+            <animate
+              attributeName="r"
+              values="20;25;20"
+              dur="2s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </svg>
+      </div>
+      <div class="loader-text">ኮቻ ኢትስ - መጫን...</div>
+      <div class="loader-progress"></div>
+    </div>
+
+    <!-- Stats Badge -->
+    <div class="stats-badge" id="statsBadge">
+      <div class="stats-header">
+        <h4>በቀጥታ ስታቲስቲክስ</h4>
+        <button class="close-stats">&times;</button>
+      </div>
+      <div class="stats-content">
+        <div class="stat-item">
+          <i class="fas fa-users"></i>
+          <span>ንቁ ተጠቃሚዎች:</span>
+          <span id="activeUsers">1,234</span>
+        </div>
+        <div class="stat-item">
+          <i class="fas fa-motorcycle"></i>
+          <span>ራይደሮች:</span>
+          <span id="activeRiders">45</span>
+        </div>
+        <div class="stat-item">
+          <i class="fas fa-utensils"></i>
+          <span>ዛሬ ትዕዛዞች:</span>
+          <span id="todayOrders">567</span>
+        </div>
+        <div class="stat-item">
+          <i class="fas fa-clock"></i>
+          <span>አማካይ ጊዜ:</span>
+          <span id="avgTime">28 ደቂቃ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+      <div class="announcement-content">
+        <div class="announcement-text">
+          <i class="fas fa-gift"></i> ልዩ ቅናሽ! የመጀመሪያ ትዕዛዝ በ25% ቅናሽ - ኮድ: KOCHA25
+        </div>
+        <div class="announcement-text">
+          <i class="fas fa-shipping-fast"></i> ፈጣን ማድረሻ! በ15-40 ደቂቃ ውስጥ ወደ ቤትዎ
+        </div>
+        <div class="announcement-text">
+          <i class="fas fa-shield-alt"></i> ደህንነት የተጠበቀ! ያለ እጅ ክፍያ አማራጭ
+        </div>
+      </div>
+    </div>
+
+    <!-- Skip to main -->
+    <a href="#main-content" class="skip-link sr-only">Skip to main content</a>
+
+    <!-- Language Selector -->
+    <div class="language-selector">
+      <button class="lang-btn active" data-lang="am">አማርኛ</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="container">
+        <div class="top-bar-content">
+          <div class="top-bar-left">
+            <span><i class="fas fa-phone"></i> +251900010203</span>
+            <span
+              ><i class="fas fa-map-marker-alt"></i> Kombolcha, Ethiopia</span
+            >
+            <span><i class="fas fa-clock"></i> 6:00 AM - 11:00 PM</span>
+          </div>
+          <div class="top-bar-right">
+            <button class="top-bar-btn" id="statsToggle">
+              <i class="fas fa-chart-line"></i>
+              <span>Live Stats</span>
+            </button>
+            <button class="top-bar-btn" id="quickOrderBtn">
+              <i class="fas fa-bolt"></i>
+              <span>Quick Order</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="main-header">
+      <div class="container">
+        <div class="header-content">
+          <!-- Logo -->
+          <div class="logo">
+            <div class="logo-icon">
+              <svg
+                viewBox="0 0 100 100"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="50" cy="50" r="45" fill="url(#gradient)" />
+                <path
+                  d="M30 40L50 70L70 40"
+                  stroke="white"
+                  stroke-width="5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="50" cy="50" r="20" fill="#ff6d00" opacity="0.9" />
+                <defs>
+                  <linearGradient
+                    id="gradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop
+                      offset="0%"
+                      style="stop-color: #1a237e; stop-opacity: 1"
+                    />
+                    <stop
+                      offset="100%"
+                      style="stop-color: #534bae; stop-opacity: 1"
+                    />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1 class="amharic-font">ኮቻ ኢትስ</h1>
+              <p class="english-text">KochaEats</p>
+              <span data-i18n="fast food delivry">
+                <p class="tagline amharic-font">ፈጣን ምግብ አቅራቢ</p>
+              </span>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="main-nav" id="mainNav">
+            <ul class="nav-list">
+              <li>
+                <a href="#home" class="nav-link active">
+                  <i class="fas fa-home"></i>
+                  <span data-i18n="home">መግቢያ</span>
+                </a>
+              </li>
+              <li>
+                <a href="#restaurants" class="nav-link">
+                  <i class="fas fa-store"></i>
+                  <span data-i18n="restaurants">ምግብ ቤቶች</span>
+                </a>
+              </li>
+              <li>
+                <a href="#menu" class="nav-link">
+                  <i class="fas fa-utensils"></i>
+                  <span data-i18n="menu">ምግብ ዝርዝር</span>
+                </a>
+              </li>
+              <li>
+                <a href="#offers" class="nav-link">
+                  <i class="fas fa-tag"></i>
+                  <span data-i18n="offers">ማቅረቢያዎች</span>
+                </a>
+              </li>
+              <li>
+                <a href="#tracking" class="nav-link">
+                  <i class="fas fa-shipping-fast"></i>
+                  <span data-i18n="tracking">መከታተያ</span>
+                </a>
+              </li>
+              <li>
+                <a href="#support" class="nav-link">
+                  <i class="fas fa-headset"></i>
+                  <span data-i18n="support">ድጋፍ</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+
+          <!-- User Actions -->
+          <div class="user-actions">
+            <button class="cart-btn" id="cartBtn">
+              <div class="cart-logo">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="50" cy="50" r="45" fill="url(#cartGradient)" />
+                  <path d="M30 40L50 70L70 40" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="50" cy="50" r="20" fill="#ff6d00" opacity="0.9" />
+                  <defs>
+                    <linearGradient id="cartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color: #1a237e; stop-opacity: 1" />
+                      <stop offset="100%" style="stop-color: #534bae; stop-opacity: 1" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <span class="cart-count" id="cartCount">0</span>
+              <span class="cart-text" data-i18n="cart">ጋሪ</span>
+            </button>
+
+            <button class="auth-btn" id="authBtn">
+              <i class="fas fa-user"></i>
+              <span data-i18n="login">ግባ/ተመዝገቢ</span>
+            </button>
+
+            <button class="logout-btn hidden" id="logoutBtn">
+              <i class="fas fa-sign-out-alt"></i>
+              <span data-i18n="logout">ውጣ</span>
+            </button>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+              <i class="fas fa-bars"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Hero Section -->
+      <section class="hero-section" id="home">
+        <div class="hero-background">
+          <div class="hero-pattern"></div>
+        </div>
+        <div class="container">
+          <div class="hero-content">
+            <div class="hero-text">
+              <h2 class="amharic-font">
+                ኮምቦልቻ ውስጥ ከሚገኙ ምግብ ቤቶች በጥራት እና በታማኝነት ቤትዎ ድረስ እናቀርባለን
+              </h2>
+              <h3>Fast Food Delivery from Kombolcha's Best Restaurants</h3>
+              <p class="hero-description" data-i18n="heroDesc">
+                Order your favorite food from local restaurants and get it
+                delivered to your doorstep in minutes.
+              </p>
+
+              <!-- Quick Stats -->
+              <div class="hero-stats">
+                <div class="stat">
+                  <span class="stat-number">50+</span>
+                  <span class="stat-label" data-i18n="menuItems">ምግቦች</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-number">15-40</span>
+                  <span class="stat-label" data-i18n="minutes">ደቂቃዎች</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-number">6</span>
+                  <span class="stat-label" data-i18n="restaurants"
+                    >ምግብ ቤቶች</span
+                  >
+                </div>
+                <div class="stat">
+                  <span class="stat-number">24/7</span>
+                  <span class="stat-label" data-i18n="support">ድጋፍ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search Box -->
+            <div class="search-box">
+              <div class="search-header">
+                <h4 data-i18n="orderNow">አሁን ይዘዙ</h4>
+                <p data-i18n="orderDesc">የሚፈልጉትን ምግብ ያግኙ</p>
+              </div>
+
+              <div class="search-controls">
+                <!-- Location -->
+                <div class="search-group">
+                  <div class="input-with-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <select id="locationSelect" class="form-select">
+                      <option value="" data-i18n="selectArea">
+                        አካባቢዎን ይምረጡ
+                      </option>
+                      <option value="ayermarefiya">Ayermarefiya</option>
+                      <option value="ketema">Ketema</option>
+                      <option value="shishaber">Shishaber</option>
+                      <option value="kebele01">Kebele 01</option>
+                      <option value="kebele02">Kebele 02</option>
+                      <option value="kebele03">Kebele 03</option>
+                      <option value="kebele04">Kebele 04</option>
+                      <option value="kutema">Kutema</option>
+                      <option value="kebele08">Kebele 08</option>
+                      <option value="habitat">Habitat</option>
+                      <option value="industry">Industry Area</option>
+                      <option value="hospital">Around Hospital</option>
+                      <option value="university">Kombolcha University</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="search-group">
+                  <div class="input-with-icon">
+                    <i class="fas fa-search"></i>
+                    <input
+                      type="text"
+                      id="searchInput"
+                      placeholder="ምግብ ይፈልጉ..."
+                      data-i18n="searchPlaceholder"
+                    />
+                  </div>
+                </div>
+
+                <!-- Search Button -->
+                <button class="search-btn" id="searchBtn">
+                  <i class="fas fa-search"></i>
+                  <span data-i18n="search">ፈልግ</span>
+                </button>
+              </div>             
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Featured Restaurants -->
+      <section class="featured-section" id="restaurants">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="amharic-font">ታዋቂ ምግብ ቤቶች</h2>
+            <h2>Popular Restaurants</h2>
+            <p data-i18n="featuredDesc">ከኮምቦልቻ ምርጥ ምግብ ቤቶች ይምረጡ</p>
+          </div>
+
+          <!-- Restaurant Filters -->
+          <div class="filters">
+            <div class="filter-group">
+              <select id="cuisineFilter" class="filter-select">
+                <option value="" data-i18n="allCuisines">ሁሉም የምግብ ዓይነቶች</option>
+                <option value="ethiopian" data-i18n="ethiopianCuisine">
+                  ኢትዮጵያዊ ምግብ
+                </option>
+                <option value="fasting" data-i18n="fastingFood">ጾም ምግብ</option>
+                <option value="international" data-i18n="internationalCuisine">
+                  ዓለም አቀፍ ምግብ
+                </option>
+                <option value="breakfast" data-i18n="breakfast">እራት</option>
+              </select>
+
+              <select id="sortFilter" class="filter-select">
+                <option value="rating" data-i18n="topRated">ከፍተኛ ደረጃ</option>
+                <option value="delivery" data-i18n="fastDelivery">
+                  ፈጣን ማድረሻ
+                </option>
+                <option value="price" data-i18n="lowPrice">ትንሽ ዋጋ</option>
+                <option value="name" data-i18n="name">ስም</option>
+              </select>
+
+              <button class="filter-btn" id="clearFilters">
+                <i class="fas fa-times"></i>
+                <span data-i18n="clear">አጽዳ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Restaurant Grid -->
+          <div class="restaurant-grid" id="restaurantGrid">
+            <!-- Loaded by JavaScript -->
+          </div>
+
+          <!-- View All Button -->
+          <div class="view-all">
+            <button class="btn-outline" id="viewAllRestaurants">
+              <span data-i18n="viewAll">ሁሉንም ይመልከቱ</span>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Food Menu -->
+      <section class="menu-section" id="menu">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="amharic-font">የኢትዮጵያ ልዩ ምግቦች</h2>
+            <h2>Ethiopian Special Foods</h2>
+            <p data-i18n="menuDesc">የባህል እና ዘመናዊ ምግቦች</p>
+          </div>
+
+          <!-- Menu Categories -->
+          <div class="menu-categories" id="menuCategories">
+            <!-- Loaded by JavaScript -->
+          </div>
+
+          <!-- Menu Subcategories -->
+          <div class="menu-subcategories" id="menuSubcategories">
+            <!-- Loaded by JavaScript -->
+          </div>
+
+          <!-- Menu Grid -->
+          <div class="menu-grid" id="menuGrid">
+            <!-- Loaded by JavaScript -->
+          </div>
+
+          <!-- Menu Pagination -->
+          <div class="menu-pagination" id="menuPagination">
+            <!-- Loaded by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Special Offers -->
+      <section class="offers-section" id="offers">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="amharic-font">ልዩ ቅናሾች እና ኩፖኖች</h2>
+            <h2>Special Discounts & Coupons</h2>
+            <p data-i18n="offersDesc">በየቀኑ ልዩ ቅናሾች እና ኩፖኖች</p>
+          </div>
+
+          <div class="offers-container">
+            <!-- Coupon Input -->
+            <div class="coupon-input-box">
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="couponInput"
+                  placeholder="ኩፖን ኮድ ያስገቡ"
+                  data-i18n="enterCoupon"
+                />
+                <button class="btn-primary" id="applyCouponBtn">
+                  <i class="fas fa-tag"></i>
+                  <span data-i18n="apply">አስጠቀም</span>
+                </button>
+              </div>
+              <p class="coupon-help" data-i18n="couponHelp">
+                የኩፖን ኮድዎን ከላይ ያስገቡ ወይም ከታች አንዱን ይምረጡ
+              </p>
+            </div>
+
+            <!-- Active Coupons -->
+            <div class="coupons-grid" id="couponsGrid">
+              <!-- Loaded by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Tracking -->
+      <section class="tracking-section" id="tracking">
+        <div class="container">
+          <div class="tracking-container">
+            <div class="section-header">
+              <h2 class="amharic-font">የቀጥታ መከታተያ</h2>
+              <h2>Live Order Tracking</h2>
+              <p data-i18n="trackingDesc">ትዕዛዝዎን ከመደርደሪያ እስከ ቤትዎ ይከታተሉ</p>
+            </div>
+
+            <div class="tracking-box" id="trackingBox">
+              <div class="tracking-placeholder">
+                <i class="fas fa-shipping-fast"></i>
+                <h4 data-i18n="noActiveOrder">ንቁ ትዕዛዝ የለም</h4>
+                <p data-i18n="trackingPlaceholder">
+                  ትዕዛዝ ሲያደርጉ እዚህ የቀጥታ መከታተያ ያገኛሉ
+                </p>
+                <button class="btn-outline" id="startOrderBtn">
+                  <i class="fas fa-shopping-cart"></i>
+                  <span data-i18n="startOrdering">ትዕዛዝ ይጀምሩ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Payment Methods -->
+      <section class="payment-section">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="amharic-font">የክፍያ ዘዴዎች</h2>
+            <h2>Payment Methods</h2>
+            <p class="subtitle" data-i18n="paymentDesc">ኢንተረስት አልባ ክፍያ ዘዴዎች</p>
+          </div>
+
+          <div class="payment-methods">
+            <div class="payment-method-card active" data-method="telebirr">
+              <div class="payment-icon">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <div class="payment-details">
+                <h4>TeleBirr</h4>
+                <p data-i18n="telebirrDesc">ከመለያዎ በቀጥታ ይክፈሉ</p>
+                <div class="payment-steps">
+                  <p><i class="fas fa-phone"></i> 127# ይደውሉ</p>
+                  <p><i class="fas fa-check-circle"></i> ክፍያ ይቀበሉ</p>
+                  <p><i class="fas fa-key"></i> PIN ያስገቡ</p>
+                </div>
+              </div>
+              <div class="payment-select">
+                <i class="fas fa-check-circle"></i>
+              </div>
+            </div>
+
+            <div class="payment-method-card" data-method="cash">
+              <div class="payment-icon">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="payment-details">
+                <h4 data-i18n="cash">ጥሬ ገንዘብ</h4>
+                <p data-i18n="cashDesc">ምግብ ሲደርስ ይክፈሉ</p>
+              </div>
+            </div>
+
+            <div class="payment-method-card" data-method="cbebirr">
+              <div class="payment-icon">
+                <i class="fas fa-university"></i>
+              </div>
+              <div class="payment-details">
+                <h4>CBE Birr</h4>
+                <p data-i18n="cbebirrDesc">ከንግድ ባንክ ሂሳብዎ</p>
+              </div>
+            </div>
+
+            <div class="payment-method-card" data-method="amole">
+              <div class="payment-icon">
+                <i class="fas fa-gem"></i>
+              </div>
+              <div class="payment-details">
+                <h4>Amole</h4>
+                <p data-i18n="amoleDesc">የኢትዮጵያ ዲጂታል ሒሳብ</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bank Transfer Option -->
+          <div class="bank-transfer">
+            <h4>
+              <i class="fas fa-exchange-alt"></i>
+              <span data-i18n="bankTransfer">ባንክ ማስተላለፍ</span>
+            </h4>
+            <div class="bank-details">
+              <p>
+                <strong data-i18n="bankName">ባንክ:</strong> Commercial Bank of
+                Ethiopia
+              </p>
+              <p>
+                <strong data-i18n="accountName">ሂሳብ ስም:</strong> KochaEats Food
+                Delivery
+              </p>
+              <p>
+                <strong data-i18n="accountNumber">ሂሳብ ቁጥር:</strong>
+                10003456789012
+              </p>
+              <p>
+                <strong data-i18n="branch">ቅርንጫፍ:</strong> Kombolcha Main Branch
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Support Section -->
+      <section class="support-section" id="support">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="amharic-font">እገዛ እና ድጋፍ</h2>
+            <h2>Help & Support</h2>
+            <p data-i18n="supportDesc">ለማንኛውም ጥያቄ ወይም ችግር እንደርሰዎታለን</p>
+          </div>
+
+          <div class="support-grid">
+            <!-- Live Chat -->
+            <div class="support-card" id="supportChat">
+              <div class="support-icon">
+                <i class="fas fa-comments"></i>
+              </div>
+              <div class="support-content">
+                <h4 data-i18n="liveChat">የቀጥታ ውይይት</h4>
+                <p data-i18n="chatDesc">ከደጋፊዎቻችን ጋር በቀጥታ ይወያዩ</p>
+                <button class="btn-outline" id="startChatBtn">
+                  <i class="fas fa-comment-dots"></i>
+                  <span data-i18n="startChat">ውይይት ይጀምሩ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Order History -->
+            <div class="support-card" id="orderHistory">
+              <div class="support-icon">
+                <i class="fas fa-history"></i>
+              </div>
+              <div class="support-content">
+                <h4 data-i18n="orderHistory">የትዕዛዝ ታሪክ</h4>
+                <p data-i18n="historyDesc">ያለፉትን ትዕዛዞችዎን ይመልከቱ</p>
+                <button class="btn-outline" id="viewHistoryBtn">
+                  <i class="fas fa-eye"></i>
+                  <span data-i18n="viewHistory">ይመልከቱ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="support-card" id="faq">
+              <div class="support-icon">
+                <i class="fas fa-question-circle"></i>
+              </div>
+              <div class="support-content">
+                <h4>FAQ</h4>
+                <p data-i18n="faqDesc">ተደጋጋሚ ጥያቄዎች</p>
+                <button class="btn-outline" id="openFaqBtn">
+                  <i class="fas fa-book-open"></i>
+                  <span data-i18n="openFaq">ክፈት</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="support-card" id="contact">
+              <div class="support-icon">
+                <i class="fas fa-phone-alt"></i>
+              </div>
+              <div class="support-content">
+                <h4 data-i18n="contactUs">አግኙን</h4>
+                <p data-i18n="contactDesc">በቀጥታ ያነጋግሩን</p>
+                <button class="btn-outline" id="contactBtn">
+                  <i class="fas fa-phone"></i>
+                  <span data-i18n="callNow">ይደውሉ</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Newsletter -->
+      <section class="newsletter-section">
+        <div class="container">
+          <div class="newsletter-box">
+            <div class="newsletter-content">
+              <h3 class="amharic-font">ልዩ ቅናሾችን ያግኙ</h3>
+              <p data-i18n="newsletterDesc">ለአዲስ ቅናሾች እና ማቅረቢያዎች ይመዝገቡ</p>
+            </div>
+            <div class="newsletter-form">
+              <div class="input-group">
+                <input
+                  type="email"
+                  id="newsletterEmail"
+                  placeholder="ኢሜይልዎን ያስገቡ"
+                  data-i18n="emailPlaceholder"
+                />
+                <button class="btn-primary" id="subscribeBtn">
+                  <i class="fas fa-paper-plane"></i>
+                  <span data-i18n="subscribe">መዝገብ</span>
+                </button>
+              </div>
+              <p class="privacy-note" data-i18n="privacyNote">
+                ኢሜይልዎን ከሌላ ጋር አንጋራም
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Map Section -->
+    <section class="map-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="amharic-font">ኮምቦልቻ ካርታ</h2>
+          <h2>Kombolcha Map</h2>
+          <p>የእኛ አገልግሎት የሚደርስባቸው አካባቢዎች</p>
+        </div>
+        <div class="map-container" id="mapContainer">
+          <!-- Google Map will be loaded here -->
+        </div>
+        <div class="map-info">
+          <div class="map-stats">
+            <div class="map-stat">
+              <i class="fas fa-map-marker-alt"></i>
+              <div>
+                <h4>Service Areas</h4>
+                <p>All Kombolcha Areas</p>
+              </div>
+            </div>
+            <div class="map-stat">
+              <i class="fas fa-clock"></i>
+              <div>
+                <h4>Delivery Time</h4>
+                <p>15-50 minutes</p>
+              </div>
+            </div>
+            <div class="map-stat">
+              <i class="fas fa-motorcycle"></i>
+              <div>
+                <h4>Riders Online</h4>
+                <p>15+ Active Riders</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <!-- About -->
+          <div class="footer-col">
+            <div class="footer-logo">
+              <h3 class="amharic-font">ኮቻ ኢትስ</h3>
+              <p class="footer-tagline" data-i18n="footerTagline">
+                ኮምቦልቻ ውስጥ ፈጣን እና አስተማማኝ ምግብ አቅራቢ
+              </p>
+            </div>
+            <div class="footer-about">
+              <p data-i18n="footerAbout">
+                ከኮምቦልቻ ምርጥ ምግብ ቤቶች ፈጣን ማድረሻ። የተረጋገጠ ጥራት፣ ፈጣን አገልግሎት
+              </p>
+            </div>
+            <div class="social-links">
+              <a href="#" class="social-link"
+                ><i class="fab fa-facebook-f"></i
+              ></a>
+              <a href="#" class="social-link"
+                ><i class="fab fa-telegram"></i
+              ></a>
+              <a href="#" class="social-link"
+                ><i class="fab fa-whatsapp"></i
+              ></a>
+              <a href="#" class="social-link"><i class="fab fa-tiktok"></i></a>
+            </div>
+          </div>
+
+          <!-- Quick Links -->
+          <div class="footer-col">
+            <h4 data-i18n="quickLinks">ፈጣን አገናኞች</h4>
+            <ul class="footer-links">
+              <li><a href="#home" data-i18n="home">መግቢያ</a></li>
+              <li>
+                <a href="#restaurants" data-i18n="restaurants">ምግብ ቤቶች</a>
+              </li>
+              <li><a href="#menu" data-i18n="menu">ምግብ ዝርዝር</a></li>
+              <li><a href="#offers" data-i18n="offers">ማቅረቢያዎች</a></li>
+              <li><a href="#support" data-i18n="support">ድጋፍ</a></li>
+            </ul>
+          </div>
+
+          <!-- Company -->
+          <div class="footer-col">
+            <h4 data-i18n="company">ኩባንያ</h4>
+            <ul class="footer-links">
+              <li><a href="#" data-i18n="aboutUs">ስለኛ</a></li>
+              <li><a href="#" data-i18n="careers">ስራዎች</a></li>
+              <li><a href="#" data-i18n="partners">አጋሮች</a></li>
+              <li><a href="#" data-i18n="privacy">የግላዊነት ፖሊሲ</a></li>
+              <li><a href="#" data-i18n="terms">ውሎች</a></li>
+            </ul>
+          </div>
+
+          <!-- Contact -->
+          <div class="footer-col">
+            <h4 data-i18n="contactUs">አግኙን</h4>
+            <div class="contact-info">
+              <p>
+                <i class="fas fa-map-marker-alt"></i> Kombolcha, South Wollo
+              </p>
+              <p><i class="fas fa-phone"></i> +251 91 234 5678</p>
+              <p><i class="fas fa-envelope"></i> info@kochaeats.et</p>
+              <p><i class="fas fa-clock"></i> 12:00 AM - 12:00 PM</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div class="copyright">
+            <p class="amharic-font">© 2025 ኮቻ ኢትስ. ሁሉም መብቶች የተጠበቁ ናቸው.</p>
+            <p>
+              © 2025 KochaEats. All rights reserved by software engineering
+              section B students: TEQWA TEAM.
+            </p>
+          </div>
+          
+         
+        </div>
+      </div>
+    </footer>
+
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="amharic-font">የእርስዎ ጋሪ</h3>
+          <button class="close-modal" id="closeCart">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="cart-items" id="cartItems">
+            <!-- Cart items loaded by JS -->
+          </div>
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span data-i18n="subtotal">ንዑስ ድምር</span>
+              <span id="cartSubtotal">ETB 0.00</span>
+            </div>
+            <div class="summary-row">
+              <span data-i18n="deliveryFee">የማድረሻ ክፍያ</span>
+              <span id="cartDelivery">ETB 25.00</span>
+            </div>
+            <div class="summary-row coupon-row">
+              <span data-i18n="couponDiscount">ኩፖን ቅናሽ</span>
+              <span id="cartDiscount">-ETB 0.00</span>
+            </div>
+            <div class="summary-row total-row">
+              <strong data-i18n="total">ጠቅላላ</strong>
+              <strong id="cartTotal">ETB 25.00</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" id="continueShopping">
+            <i class="fas fa-shopping-bag"></i>
+            <span data-i18n="continueShopping">መግዛት ይቀጥሉ</span>
+          </button>
+          <button class="btn-primary" id="proceedCheckout">
+            <i class="fas fa-credit-card"></i>
+            <span data-i18n="checkout">ክፍያ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="authModal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="amharic-font">ግባ / ተመዝገቢ</h3>
+          <button class="close-modal" id="closeAuth">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- Role Selection Tabs -->
+          <div class="auth-role-tabs">
+            <button class="role-tab active" data-role="user" id="userTab">
+              <i class="fas fa-user"></i>
+              <span data-i18n="user">ተጠቃሚ</span>
+            </button>
+            <button class="role-tab" data-role="rider" id="riderTab">
+              <i class="fas fa-motorcycle"></i>
+              <span data-i18n="rider">ራይደር</span>
+            </button>
+            <button class="role-tab" data-role="admin" id="adminTab">
+              <i class="fas fa-user-shield"></i>
+              <span data-i18n="admin">አስተዳዳሪ</span>
+            </button>
+          </div>
+
+          <!-- User Login/Register -->
+          <div class="role-form active" id="userForm">
+            <div class="auth-tabs">
+              <button class="auth-tab active" id="loginTab">
+                <i class="fas fa-sign-in-alt"></i>
+                <span data-i18n="login">ግባ</span>
+              </button>
+              <button class="auth-tab" id="registerTab">
+                <i class="fas fa-user-plus"></i>
+                <span data-i18n="register">ተመዝገቢ</span>
+              </button>
+            </div>
+
+            <!-- User Login Form -->
+            <div class="auth-form active" id="loginForm">
+              <div class="form-group">
+                <input
+                  type="email"
+                  id="loginEmail"
+                  placeholder="ኢሜይል"
+                  data-i18n="emailPlaceholder"
+                />
+                <i class="fas fa-envelope"></i>
+              </div>
+              <div class="form-group">
+                <input
+                  type="password"
+                  id="loginPassword"
+                  placeholder="የይለፍ ቃል"
+                  data-i18n="passwordPlaceholder"
+                />
+                <i class="fas fa-lock"></i>
+              </div>
+              <div class="form-options">
+                <label class="checkbox">
+                  <input type="checkbox" id="rememberMe" />
+                  <span data-i18n="rememberMe">አስታውሰኝ</span>
+                </label>
+                <a href="#" class="forgot-password" data-i18n="forgotPassword"
+                  >የይለፍ ቃል ረሳኽ?</a
+                >
+              </div>
+              <button class="btn-primary btn-block" id="submitLogin">
+                <i class="fas fa-sign-in-alt"></i>
+                <span data-i18n="login">ግባ</span>
+              </button>
+              <div class="auth-divider">
+                <span data-i18n="or">ወይም</span>
+              </div>
+              <button class="btn-outline btn-block" id="googleLogin">
+                <i class="fab fa-google"></i>
+                <span data-i18n="continueWithGoogle">በGoogle ይቀጥሉ</span>
+              </button>
+            </div>
+
+            <!-- User Register Form -->
+            <div class="auth-form" id="registerForm">
+              <div
+                class="password-strength-container"
+                id="passwordStrength"
+              ></div>
+              <div class="form-group">
+                <input
+                  type="text"
+                  id="registerName"
+                  placeholder="ሙሉ ስም"
+                  data-i18n="fullName"
+                  pattern="[a-zA-Z\u1200-\u137F\s\-'.]+"
+                  title="Name can only contain letters, spaces, hyphens, apostrophes, and dots"
+                  maxlength="50"
+                  required
+                />
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="form-group">
+                <input
+                  type="email"
+                  id="registerEmail"
+                  placeholder="ኢሜይል"
+                  data-i18n="emailPlaceholder"
+                />
+                <i class="fas fa-envelope"></i>
+              </div>
+              <div class="form-group">
+                <input
+                  type="tel"
+                  id="registerPhone"
+                  placeholder="ስልክ ቁጥር"
+                  data-i18n="phoneNumber"
+                />
+                <i class="fas fa-phone"></i>
+              </div>
+              <div class="form-group">
+                <input
+                  type="password"
+                  id="registerPassword"
+                  placeholder="የይለፍ ቃል"
+                  data-i18n="passwordPlaceholder"
+                />
+                <i class="fas fa-lock"></i>
+              </div>
+              <div class="form-group">
+                <input
+                  type="password"
+                  id="registerConfirm"
+                  placeholder="የይለፍ ቃል አረጋግጥ"
+                  data-i18n="confirmPassword"
+                />
+                <i class="fas fa-lock"></i>
+              </div>
+              <label class="checkbox">
+                <input type="checkbox" id="acceptTerms" />
+                <span data-i18n="acceptTerms">ውሎችን እቀበላለሁ</span>
+              </label>
+              <button class="btn-primary btn-block" id="submitRegister">
+                <i class="fas fa-user-plus"></i>
+                <span data-i18n="createAccount">መለያ ይፍጠሩ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Rider Login Form -->
+          <div class="role-form" id="riderForm">
+            <div class="role-description">
+              <i class="fas fa-motorcycle"></i>
+              <p data-i18n="riderLoginDesc">
+                ምግብ ማድረሻ ራይደሮች እንኳን ወደ አገልግሎታችን በደህና መጡ
+              </p>
+            </div>
+            <div class="form-group">
+              <input
+                type="email"
+                id="riderEmail"
+                placeholder="ራይደር ኢሜይል"
+                data-i18n="riderEmail"
+              />
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="form-group">
+              <input
+                type="password"
+                id="riderPassword"
+                placeholder="የራይደር የይለፍ ቃል"
+                data-i18n="riderPassword"
+              />
+              <i class="fas fa-lock"></i>
+            </div>
+            <div
+              class="password-strength-container"
+              id="riderPasswordStrength"
+            ></div>
+            <div class="rider-vehicle">
+              <select id="vehicleType">
+                <option value="" data-i18n="selectVehicle">ተሽከርካሪ ዓይነት</option>
+                <option value="motorcycle" data-i18n="motorcycle">
+                  ሞተርሳይክል
+                </option>
+                <option value="bicycle" data-i18n="bicycle">ብስክሌት</option>
+                <option value="car" data-i18n="car">መኪና</option>
+              </select>
+              <input
+                type="text"
+                id="vehicleNumber"
+                placeholder="ተሽከርካሪ ቁጥር"
+                data-i18n="vehicleNumber"
+              />
+            </div>
+            <button class="btn-primary btn-block" id="submitRiderLogin">
+              <i class="fas fa-motorcycle"></i>
+              <span data-i18n="riderLogin">እንደ ራይደር ይግቡ</span>
+            </button>
+          </div>
+
+          <!-- Admin Login Form -->
+          <div class="role-form" id="adminForm">
+            <div class="role-description">
+              <i class="fas fa-user-shield"></i>
+              <p data-i18n="adminLoginDesc">እንደ አስተዳደር አስተዳዳሪዎች ይግቡ</p>
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                id="adminUsername"
+                placeholder="የአስተዳደር መለያ"
+                data-i18n="adminUsername"
+              />
+              <i class="fas fa-user-cog"></i>
+            </div>
+            <div class="form-group">
+              <input
+                type="password"
+                id="adminPassword"
+                placeholder="የአስተዳደር የይለፍ ቃል"
+                data-i18n="adminPassword"
+              />
+              <i class="fas fa-lock"></i>
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                id="adminCode"
+                class="admin-code"
+                placeholder="አስተዳደር ኮድ"
+                data-i18n="adminCode"
+              />
+              <i class="fas fa-key"></i>
+            </div>
+            <button class="btn-primary btn-block" id="submitAdminLogin">
+              <i class="fas fa-user-shield"></i>
+              <span data-i18n="adminLogin">እንደ አስተዳዳሪ ግባ</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkoutModal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <h3 class="amharic-font">ክፍያ ያከናውኑ</h3>
+          <h3>Complete Your Order</h3>
+          <button class="close-modal" id="closeCheckout">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- Checkout steps loaded by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="modal" id="chatModal">
+      <div class="modal-dialog chat-modal">
+        <div class="modal-header">
+          <div class="chat-header">
+            <div class="chat-agent">
+              <div class="agent-avatar">
+                <i class="fas fa-headset"></i>
+              </div>
+              <div class="agent-info">
+                <h4 data-i18n="customerSupport">የደንበኞች ድጋፍ</h4>
+                <div class="agent-status">
+                  <span class="status-dot online"></span>
+                  <span data-i18n="online">ከመስመር ላይ</span>
+                </div>
+              </div>
+            </div>
+            <button class="close-modal" id="closeChat">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="chat-messages" id="chatMessages">
+            <!-- Messages loaded by JS -->
+          </div>
+          <div class="chat-input">
+            <input
+              type="text"
+              id="chatInput"
+              placeholder="መልዕክት ይጻፉ..."
+              data-i18n="typeMessage"
+            />
+            <button class="btn-primary" id="sendMessage">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Order Modal -->
+    <div class="modal quick-order-modal" id="quickOrderModal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3 class="amharic-font">ፈጣን ትዕዛዝ</h3>
+          <button class="close-modal" id="closeQuickOrder">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="quick-order-list" id="quickOrderList">
+            <!-- Quick order items loaded by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toastContainer"></div>
+
+    <!-- Floating Buttons -->
+    <button class="scroll-top-btn" id="scrollTopBtn">
+      <i class="fas fa-arrow-up"></i>
+    </button>
+
+
+    <!-- JavaScript -->
+    <script src="kochaEats.js"></script>
+  </body>
+</html>

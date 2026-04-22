@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout Test - KochaEats</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #1a237e;
+            background-color: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background-color: #fff3cd;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            background-color: #1a237e;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #000051;
+        }
+        .btn-secondary {
+            background-color: #ff6d00;
+        }
+        .btn-secondary:hover {
+            background-color: #c43c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🚀 KochaEats Logout Functionality Test</h1>
+        
+        <div class="test-step">
+            <h3>✅ Task 7 Implementation Complete!</h3>
+            <p><strong>Status:</strong> DONE</p>
+            <p>The logout button has been successfully implemented with the following features:</p>
+            <ul>
+                <li>✅ Logout button HTML structure added next to login button</li>
+                <li>✅ CSS styling for logout button with hover effects</li>
+                <li>✅ handleLogout() function implemented</li>
+                <li>✅ Event listeners added for logout button</li>
+                <li>✅ UI state management (show/hide based on login status)</li>
+                <li>✅ Translation support for Amharic and English</li>
+                <li>✅ User data clearing and localStorage cleanup</li>
+                <li>✅ Cart preservation during logout</li>
+            </ul>
+        </div>
+
+        <div class="test-step success">
+            <h3>🎯 Implementation Details</h3>
+            <p><strong>Files Modified:</strong></p>
+            <ul>
+                <li><code>kochaEats2/kochaEats.html</code> - Logout button HTML (already added)</li>
+                <li><code>kochaEats2/kochaEats.css</code> - Logout button styling</li>
+                <li><code>kochaEats2/kochaEats.js</code> - Logout functionality and UI management</li>
+            </ul>
+        </div>
+
+        <div class="test-step">
+            <h3>🔧 Key Functions Added</h3>
+            <ul>
+                <li><strong>handleLogout()</strong> - Main logout function with confirmation</li>
+                <li><strong>updateUIAfterLogout()</strong> - Updates UI elements after logout</li>
+                <li><strong>updateUIAfterLogin()</strong> - Updates UI elements after login</li>
+                <li>Event listeners for logout button in both DOMContentLoaded and window load events</li>
+                <li>Translation strings for logout in both Amharic ("ውጣ") and English ("Logout")</li>
+            </ul>
+        </div>
+
+        <div class="test-step warning">
+            <h3>🧪 How to Test</h3>
+            <ol>
+                <li>Open the main KochaEats application</li>
+                <li>Register or login with valid credentials</li>
+                <li>Verify the logout button appears next to the login button</li>
+                <li>Click the logout button</li>
+                <li>Confirm the logout action in the dialog</li>
+                <li>Verify that:
+                    <ul>
+                        <li>User is logged out successfully</li>
+                        <li>Logout button disappears</li>
+                        <li>Login button reappears</li>
+                        <li>Cart button shows "Login" instead of "Cart"</li>
+                        <li>Success message is displayed</li>
+                        <li>Cart items are preserved</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-step success">
+            <h3>🌟 Features Implemented</h3>
+            <ul>
+                <li><strong>Secure Logout:</strong> Clears user data and sensitive information</li>
+                <li><strong>Cart Preservation:</strong> Cart items remain after logout</li>
+                <li><strong>UI State Management:</strong> Proper show/hide of buttons based on login status</li>
+                <li><strong>Confirmation Dialog:</strong> Prevents accidental logout</li>
+                <li><strong>Multi-language Support:</strong> Works in both Amharic and English</li>
+                <li><strong>Responsive Design:</strong> Logout button styled consistently with the app</li>
+                <li><strong>Event Handling:</strong> Proper event listeners and cleanup</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="kochaEats.html" class="btn">🚀 Test the Application</a>
+            <a href="README-BACKEND.md" class="btn btn-secondary">📖 Backend Setup Guide</a>
+        </div>
+
+        <div class="test-step">
+            <h3>📋 Summary</h3>
+            <p>Task 7 has been <strong>successfully completed</strong>. The logout button is now fully functional with:</p>
+            <ul>
+                <li>Complete logout functionality that clears user session</li>
+                <li>Proper UI state management</li>
+                <li>Cart preservation for better user experience</li>
+                <li>Multi-language support</li>
+                <li>Consistent styling and user experience</li>
+            </ul>
+            <p><strong>The user can now successfully logout and the system will return to the logged-out state while preserving their cart items.</strong></p>
+        </div>
+    </div>
+</body>
+</html>
