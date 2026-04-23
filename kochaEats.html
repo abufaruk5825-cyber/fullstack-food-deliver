@@ -27,7 +27,7 @@
     />
 
     <!-- CSS -->
-    <link rel="stylesheet" href="kochaEats.css" />
+    <link rel="stylesheet" href="kochaEats.css?v=2.1" />
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
@@ -1619,30 +1619,21 @@
               />
               <i class="fas fa-lock"></i>
             </div>
-            <div
-              class="password-strength-container"
-              id="riderPasswordStrength"
-            ></div>
-            <div class="rider-vehicle">
-              <select id="vehicleType">
-                <option value="" data-i18n="selectVehicle">ተሽከርካሪ ዓይነት</option>
-                <option value="motorcycle" data-i18n="motorcycle">
-                  ሞተርሳይክል
-                </option>
-                <option value="bicycle" data-i18n="bicycle">ብስክሌት</option>
-                <option value="car" data-i18n="car">መኪና</option>
-              </select>
-              <input
-                type="text"
-                id="vehicleNumber"
-                placeholder="ተሽከርካሪ ቁጥር"
-                data-i18n="vehicleNumber"
-              />
+            <!-- Vehicle fields hidden — only needed for registration, not login -->
+            <div class="rider-vehicle" style="display:none">
+              <select id="vehicleType"><option value="">-</option></select>
+              <input type="text" id="vehicleNumber" placeholder="-" />
             </div>
             <button class="btn-primary btn-block" id="submitRiderLogin">
               <i class="fas fa-motorcycle"></i>
               <span data-i18n="riderLogin">እንደ ራይደር ይግቡ</span>
             </button>
+            <p style="text-align:center;margin-top:12px;font-size:.8rem;color:#888">
+              Not registered yet? 
+              <a href="#" onclick="showRiderRegisterInfo()" style="color:#ff6b35;text-decoration:none;font-weight:600">
+                Register as Rider
+              </a>
+            </p>
           </div>
 
           <!-- Admin Login Form -->
@@ -1766,6 +1757,6 @@
 
 
     <!-- JavaScript -->
-    <script src="kochaEats.js"></script>
+    <script src="kochaEats.js?v=2.1"></script>
   </body>
 </html>

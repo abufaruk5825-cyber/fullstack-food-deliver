@@ -2335,219 +2335,148 @@ function initializeEnhancedAuth() {
 // ==============================
 // RIDER LOGIN HANDLER
 // ==============================
+// RIDER LOGIN HANDLER
+// ==============================
 function handleRiderLogin() {
-  if (app.isAccountLocked()) {
-    app.showToast(
-      "Account temporarily locked. Try again in 15 minutes.",
-      "error"
-    );
-    return;
-  }
-
-  const email = document.getElementById("riderEmail")?.value.trim();
+  const email    = document.getElementById("riderEmail")?.value.trim();
   const password = document.getElementById("riderPassword")?.value;
-  const vehicleType = document.getElementById("vehicleType")?.value;
-  const vehicleNumber = document.getElementById("vehicleNumber")?.value.trim();
 
-  const errors = [];
-
-  if (!email) {
-    errors.push("Email is required");
-  } else if (!isValidEmail(email)) {
-    errors.push("Please enter a valid email address");
+  if (!email || !password) {
+    app.showToast("Email and password are required", "error");
+    return;
   }
-
-  if (!password) {
-    errors.push("Password is required");
-  } else {
-    const strength = isStrongPassword(password);
-    if (!strength.isValid) {
-      errors.push(
-        "Password must be at least 8 characters with uppercase, lowercase, numbers, and special characters"
-      );
-    }
-  }
-
-  if (!vehicleType) {
-    errors.push("Please select vehicle type");
-  }
-
-  if (!vehicleNumber) {
-    errors.push("Vehicle number is required");
-  } else if (!isValidVehicleNumber(vehicleNumber)) {
-    errors.push(
-      "Please enter valid vehicle number (e.g., 3-12345 or AA-12345)"
-    );
-  }
-
-  if (errors.length > 0) {
-    app.showToast(errors.join(", "), "error");
+  if (!isValidEmail(email)) {
+    app.showToast("Please enter a valid email address", "error");
     return;
   }
 
-  const validRiderCodes = [
-    "R-1000",
-    "R-1001",
-    "R-1002",
-    "R-1003",
-    "R-1004",
-    "R-1005",
-    "R-1006",
-    "R-1007",
-    "R-1008",
-    "R-1009",
-    "R-1010",
-    "R-1011",
-    "R-1012",
-    "R-1013",
-    "R-1014",
-    "R-1015",
-  ];
+  const btn = document.getElementById("submitRiderLogin");
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'; }
 
-  const riderCode =
-    validRiderCodes[Math.floor(Math.random() * validRiderCodes.length)];
-  const riderNames = [
-    "Abebe Tesfaye",
-    "Mekdes Haile",
-    "Solomon Bekele",
-    "Yordanos Getachew",
-    "Tewodros Mengistu",
-    "Hana Assefa",
-    "Daniel Girma",
-    "Selamawit Mulu",
-    "Kebede Worku",
-    "Marta Hailu",
-    "Samuel Tekle",
-    "Mulugeta Abate",
-  ];
+  fetch('/api/login-rider', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
 
-  const riderName = riderNames[Math.floor(Math.random() * riderNames.length)];
+    if (data.success) {
+      app.user = {
+        id:    data.data.rider_id,
+        name:  data.data.full_name,
+        email: data.data.email,
+        phone: data.data.phone,
+        role:  'rider',
+        vehicle: {
+          type:   data.data.vehicle_type,
+          number: data.data.vehicle_number
+        }
+      };
+      app.saveUser();
 
-  const formattedVehicleNumber = formatVehicleNumber(vehicleNumber);
+      // Store JWT token for rider dashboard
+      if (data.token) {
+        localStorage.setItem('kochaToken', data.token);
+        localStorage.setItem('kochaUser', JSON.stringify({
+          id: data.data.rider_id, name: data.data.full_name,
+          email: data.data.email, phone: data.data.phone, role: 'rider'
+        }));
+      }
 
-  app.user = {
-    id: generateSecureId(),
-    name: riderName,
-    email: email,
-    phone: validatePhone(email),
-    role: "rider",
-    riderCode: riderCode,
-    vehicle: {
-      type: vehicleType,
-      number: formattedVehicleNumber,
-      verified: true,
-    },
-    status: "active",
-    joinedDate: new Date().toISOString(),
-    lastLogin: new Date().toISOString(),
-    permissions: ["view_orders", "update_status", "view_earnings"],
-    rating: 4.5 + Math.random() * 0.5,
-    totalDeliveries: Math.floor(Math.random() * 500) + 50,
-    earnings: Math.floor(Math.random() * 50000) + 10000,
-  };
+      app.showToast('Rider login successful! Welcome ' + data.data.full_name, 'success');
+      closeModal('authModal');
 
-  app.resetFailedLogins();
-  
-  // Clear cart for rider login (riders don't need customer cart items)
-  app.clearCart();
-  
-  app.saveUser();
+      // Redirect to rider dashboard
+      setTimeout(() => { window.location.href = 'rider-dashboard.html'; }, 600);
+
+    } else {
+      app.showToast(data.message || 'Login failed', 'error');
+    }
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+    console.error('Rider login error:', err);
+    app.showToast('Network error. Is the server running?', 'error');
+  });
+}
+
+// ==============================
+// RIDER REGISTER INFO
+// ==============================
+function showRiderRegisterInfo() {
   app.showToast(
-    `Rider login successful! Welcome ${riderName} (${riderCode})`,
-    "success"
+    'To register as a rider, contact admin or use POST /api/register-rider with your details.',
+    'info'
   );
-
-  closeModal("authModal");
-
-  // Update UI after successful rider login
-  updateUIAfterLogin();
-
-  setTimeout(() => {
-    app.showToast(
-      `Welcome ${app.user.name}! Ready to deliver orders. Rider Code: ${riderCode}`,
-      "info"
-    );
-  }, 1000);
+  // In a full app, this would open a rider registration form
 }
 
 // ==============================
 // ADMIN LOGIN HANDLER - BASIC VERSION
 // ==============================
 function handleAdminLogin() {
-  // Get form values
-  var username = document.getElementById("adminUsername").value;
-  var password = document.getElementById("adminPassword").value;
-  var adminCode = document.getElementById("adminCode").value;
+  var username  = document.getElementById("adminUsername").value.trim();
+  var password  = document.getElementById("adminPassword").value;
+  var adminCode = document.getElementById("adminCode").value.trim();
 
-  // Basic validation
-  if (!username) {
-    app.showToast("Please enter username", "error");
-    return;
-  }
-  
-  if (!password) {
-    app.showToast("Please enter password", "error");
-    return;
-  }
-  
-  if (!adminCode) {
-    app.showToast("Please enter admin code", "error");
-    return;
-  }
+  if (!username) { app.showToast("Please enter email", "error"); return; }
+  if (!password) { app.showToast("Please enter password", "error"); return; }
+  if (!adminCode){ app.showToast("Please enter admin code", "error"); return; }
+  if (adminCode !== "KOCHA2025") { app.showToast("Wrong admin code", "error"); return; }
 
-  // Check admin code
-  if (adminCode !== "KOCHA2025") {
-    app.showToast("Wrong admin code", "error");
-    return;
-  }
+  // Disable button to prevent double-click
+  var btn = document.querySelector('#adminLoginForm button[type="submit"]') ||
+            document.querySelector('.admin-login-btn') ||
+            document.querySelector('#submitAdminLogin');
+  var origText = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...'; }
 
-  // Create simple request to backend
-  var requestData = {
-    email: username,
-    password: password
-  };
-
-  // Send to backend using basic fetch
   fetch('/api/login-admin', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestData)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: username, password: password })
   })
-  .then(function(response) {
-    return response.json();
-  })
+  .then(function(r) { return r.json(); })
   .then(function(data) {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
     if (data.success) {
-      // Login worked - save user info
+      // Save user and JWT token
       app.user = {
         id: data.data.admin_id,
         name: data.data.full_name,
         email: data.data.email,
         phone: data.data.phone,
-        role: "admin"
+        role: 'admin'
       };
+      app.saveUser();
 
-      // Show success message
+      if (data.token) {
+        localStorage.setItem('kochaToken', data.token);
+        localStorage.setItem('kochaUser', JSON.stringify({
+          id: data.data.admin_id, name: data.data.full_name,
+          email: data.data.email, phone: data.data.phone, role: 'admin'
+        }));
+      }
+
       app.showToast("Admin login successful!", "success");
-      
-      // Close login form
       closeModal("authModal");
-      
-      // Go to admin page
-      app.showView("admin");
+
+      // Redirect to admin dashboard after short delay
+      setTimeout(function() {
+        window.location.href = 'admin-dashboard.html';
+      }, 600);
     } else {
-      
-      // Login failed - show error
       app.showToast("Login failed: " + data.message, "error");
     }
   })
-  .catch(function(error) {
-    // Connection error
-    app.showToast("Connection error", "error");
+  .catch(function(err) {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+    console.error('Admin login error:', err);
+    app.showToast("Network error. Is the server running?", "error");
   });
-
 }
 
 // ==============================
@@ -2568,6 +2497,10 @@ function handleLogout() {
   // Clear user data
   app.user = null;
   app.saveUser();
+
+  // Clear JWT tokens
+  localStorage.removeItem('kochaToken');
+  localStorage.removeItem('kochaUser');
   
   // IMPORTANT: Clear cart when user logs out
   // This ensures the next user starts with a fresh cart
@@ -2910,6 +2843,15 @@ function handleLogin() {
       };
 
       app.saveUser();
+
+      // Store JWT token for API calls (order placement, etc.)
+      if (data.token) {
+        localStorage.setItem('kochaToken', data.token);
+        localStorage.setItem('kochaUser', JSON.stringify({
+          id: data.data.user_id, name: data.data.full_name,
+          email: data.data.email, phone: data.data.phone, role: 'customer'
+        }));
+      }
       
       // Show appropriate welcome message
       if (cartCleared) {
@@ -2917,17 +2859,6 @@ function handleLogin() {
       } else {
         app.showToast(`Login successful! Welcome back ${data.data.full_name}!`, "success");
       }
-
-      // Close auth modal
-      closeModal("authModal");
-      
-      // Remove checkout message if it exists
-      const checkoutMessage = document.querySelector(".checkout-message");
-      if (checkoutMessage) {
-        checkoutMessage.remove();
-      }
-      
-      // Validate user information before proceeding
       const userValidation = validateUserForCheckout();
       
       // If user has items in cart and user info is valid, show cart modal
@@ -3189,16 +3120,17 @@ function handleRegister() {
       };
 
       app.saveUser();
-      app.showToast("Registration successful! Welcome to KochaEats! Please add items to your cart.", "success");
 
-      // Close auth modal
-      closeModal("authModal");
-      
-      // Remove checkout message if it exists
-      const checkoutMessage = document.querySelector(".checkout-message");
-      if (checkoutMessage) {
-        checkoutMessage.remove();
+      // Store JWT token for API calls
+      if (data.token) {
+        localStorage.setItem('kochaToken', data.token);
+        localStorage.setItem('kochaUser', JSON.stringify({
+          id: data.data.user_id, name: data.data.full_name,
+          email: data.data.email, phone: phone, role: 'customer'
+        }));
       }
+
+      app.showToast("Registration successful! Welcome to KochaEats! Please add items to your cart.", "success");
       
       // Validate user information before proceeding
       const userValidation = validateUserForCheckout();
@@ -4328,55 +4260,100 @@ function completeOrder() {
     return;
   }
 
-  // Create order
-  const order = {
-    id: Date.now(),
-    items: [...app.cart],
-    subtotal: app.getCartSubtotal(),
-    deliveryFee: app.getDeliveryFee(),
-    discount: app.getCouponDiscount(),
-    total: app.getCartTotal(),
-    paymentMethod: app.paymentMethod,
-    deliveryArea: app.location,
-    customerInfo: {
-      name: app.user.name,
-      email: app.user.email,
-      phone: app.user.phone
-    },
-    coupon: app.coupon,
-    status: "preparing",
-    createdAt: new Date().toISOString(),
-    estimatedDelivery: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+  const token = localStorage.getItem('kochaToken');
+  if (!token) {
+    // Token missing — user may have logged in before this fix was applied.
+    // Close checkout and prompt re-login.
+    app.showToast("Session expired. Please log out and log in again to place your order.", "error");
+    closeModal('checkoutModal');
+    setTimeout(() => showLoginRequiredModal(), 400);
+    return;
+  }
+
+  // Disable button to prevent double submission
+  const btn = document.getElementById('placeOrderBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Placing Order...'; }
+
+  const orderId = 'ORD-' + Date.now();
+  const subtotal    = app.getCartSubtotal();
+  const deliveryFee = app.getDeliveryFee();
+  const discount    = app.getCouponDiscount();
+  const total       = app.getCartTotal();
+
+  // Build payload matching the backend POST /api/orders schema
+  const payload = {
+    id:               orderId,
+    items:            app.cart,
+    subtotal:         subtotal,
+    delivery_fee:     deliveryFee,
+    discount:         discount,
+    total:            total,
+    payment_method:   app.paymentMethod,
+    delivery_area:    app.location,
+    delivery_address: APP_DATA.areas.find(a => a.id === app.location)?.name || app.location,
+    restaurant_id:    app.cart[0]?.restaurantId || null,
+    coupon_code:      app.coupon ? app.coupon.code : null,
+    user_phone:       app.user.phone,
+    notes:            null
   };
 
-  // Save order
-  app.currentOrder = order;
-  app.orders.push(order);
-  app.saveToStorage("orders", app.orders);
-  
-  // Clear cart and coupon
-  app.clearCart();
+  // POST to backend
+  fetch('/api/orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) {
+      app.showToast('Order failed: ' + (data.message || 'Unknown error'), 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Place Order - ETB ' + total.toFixed(2) + '</span>'; }
+      return;
+    }
 
-  // Close checkout modal
-  closeModal("checkoutModal");
-  
-  // Show success message with payment instructions
-  let successMessage = `Order #${order.id} placed successfully!`;
-  
-  if (app.paymentMethod === 'cbebirr') {
-    successMessage += ` Please transfer ETB ${order.total.toFixed(2)} to account 1000609876534`;
-  } else if (app.paymentMethod === 'telebirr') {
-    successMessage += ` Please complete payment via TeleBirr`;
-  } else if (app.paymentMethod === 'cash') {
-    successMessage += ` Prepare ETB ${order.total.toFixed(2)} in cash`;
-  }
-  
-  app.showToast(successMessage, "success");
+    // Also save locally for tracking UI
+    const order = {
+      id: orderId,
+      items: [...app.cart],
+      subtotal, deliveryFee, discount, total,
+      paymentMethod: app.paymentMethod,
+      deliveryArea: app.location,
+      customerInfo: { name: app.user.name, email: app.user.email, phone: app.user.phone },
+      coupon: app.coupon,
+      status: 'preparing',
+      createdAt: new Date().toISOString()
+    };
+    app.currentOrder = order;
+    app.orders.push(order);
+    app.saveToStorage('orders', app.orders);
 
-  // Show order tracking
-  setTimeout(() => {
-    showOrderTracking(order);
-  }, 1000);
+    // Clear cart and coupon
+    app.clearCart();
+    if (app.coupon) { app.coupon = null; app.saveToStorage('coupon', null); }
+
+    // Close checkout modal
+    closeModal('checkoutModal');
+
+    // Success message
+    let successMessage = 'Order #' + orderId + ' placed successfully!';
+    if (app.paymentMethod === 'cbebirr')   successMessage += ' Transfer ETB ' + total.toFixed(2) + ' to account 1000609876534';
+    else if (app.paymentMethod === 'telebirr') successMessage += ' Complete payment via TeleBirr';
+    else if (app.paymentMethod === 'cash') successMessage += ' Prepare ETB ' + total.toFixed(2) + ' in cash for the rider';
+    else if (app.paymentMethod === 'amole') successMessage += ' Complete payment via Amole';
+
+    app.showToast(successMessage, 'success');
+
+    // Show order tracking
+    setTimeout(() => { showOrderTracking(order); }, 1000);
+  })
+  .catch(err => {
+    console.error('Order error:', err);
+    app.showToast('Network error. Please try again.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Place Order - ETB ' + total.toFixed(2) + '</span>'; }
+  });
 }
 
 // ==============================

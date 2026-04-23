@@ -335,9 +335,45 @@ function createTables(callback) {
 }
 
 function seedDefaultAdmin() {
-    // Safely add updated_at to users if it doesn't exist (migration for existing DBs)
-    db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", (err) => {
-        if (err && !err.message.includes('Duplicate column')) console.error('users migration:', err.message);
+    // Run DB migrations for existing installations
+    const migrations = [
+        "ALTER TABLE orders MODIFY payment_method ENUM('cash','telebirr','cbebirr','amole','card','wallet','bank_transfer') DEFAULT 'cash'",
+        "ALTER TABLE orders MODIFY payment_status ENUM('pending','awaiting_payment','paid','failed','refunded','cancelled') DEFAULT 'pending'",
+        "ALTER TABLE orders MODIFY order_status ENUM('pending','confirmed','preparing','ready','ready_for_pickup','assigned_to_rider','picked_up','out_for_delivery','delivered','cancelled','rejected','failed','failed_delivery','refunded') DEFAULT 'pending'",
+        "ALTER TABLE payments MODIFY method ENUM('cash','telebirr','cbebirr','amole','card','wallet','bank_transfer') DEFAULT 'cash'",
+        "ALTER TABLE payments MODIFY status ENUM('pending','processing','completed','failed','refunded','cancelled') DEFAULT 'pending'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_ref VARCHAR(80)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'ETB'",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway_tx_id VARCHAR(150)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP NULL",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMP NULL",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS refund_reason TEXT",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45)",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payment_id INT",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS wallet_id INT",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS fee DECIMAL(10,2) DEFAULT 0",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS net_amount DECIMAL(12,2)",
+        "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gateway_ref VARCHAR(150)",
+        "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS gateway_ref VARCHAR(150)",
+        "ALTER TABLE refunds ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP NULL",
+        "ALTER TABLE rider_details ADD COLUMN IF NOT EXISTS total_deliveries INT DEFAULT 0",
+        "ALTER TABLE rider_details ADD COLUMN IF NOT EXISTS rating DECIMAL(3,2) DEFAULT 5.00",
+        "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_name VARCHAR(150)",
+        "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit_price DECIMAL(10,2)",
+        "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS total_price DECIMAL(10,2)",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS description TEXT",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS cuisine_type VARCHAR(100)",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS image VARCHAR(255)",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS rating DECIMAL(3,2) DEFAULT 0.00"
+    ];    migrations.forEach(sql => {
+        db.query(sql, (err) => {
+            if (err && !err.message.includes('Duplicate column') && !err.message.includes('already exists'))
+                console.error('Migration warning:', err.message.substring(0, 80));
+        });
     });
 
     const email = 'admin@kochaeats.com';
@@ -384,7 +420,28 @@ function seedPaymentConfig() {
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
             [code, name, type, provider, icon, enabled, is_default, min, max, fee, fee_type, acc_num, acc_name, instructions, sort], () => {});
     });
-    console.log('âœ… Payment config & methods seeded');
+    console.log('✅ Payment config & methods seeded');
+    seedRestaurants();
+}
+
+function seedRestaurants() {
+    const restaurants = [
+        { id:1, name:'Leul Mekonen Hotel',     cuisine:'Ethiopian, International', address:'Shisha-Ber, Kombolcha',   phone:'+251911000001', image:'kochaEats/images/leul mekonen hotel1.png',   rating:4.7 },
+        { id:2, name:'Yegof View Restaurant',  cuisine:'Ethiopian, International', address:'Shewa Ber, Kombolcha',    phone:'+251911000002', image:'kochaEats/images/yegof view hotel.png',       rating:4.5 },
+        { id:3, name:'Sunny Said Hotel',        cuisine:'Ethiopian, Fasting',       address:'Shisha-Ber, Kombolcha',   phone:'+251911000003', image:'kochaEats/images/sunny side hotel.png',       rating:4.3 },
+        { id:4, name:'Rawdi Mendi Restaurant',  cuisine:'Ethiopian, International', address:'Berbere Wenz, Kombolcha', phone:'+251911000004', image:'kochaEats/images/rawdi mendi restaurant.png', rating:4.6 },
+        { id:5, name:'Double Tree Restaurant',  cuisine:'International, Ethiopian', address:'Shisha Ber, Kombolcha',   phone:'+251911000005', image:'kochaEats/images/double tree.png',            rating:4.4 },
+        { id:6, name:'Al-Risallah Restaurant',  cuisine:'Ethiopian, Fasting',       address:'Kebele 03, Kombolcha',    phone:'+251911000006', image:'kochaEats/images/al-risallah restaurant.png', rating:4.8 },
+    ];
+    restaurants.forEach(r => {
+        db.query(
+            `INSERT INTO restaurants (id,name,cuisine_type,address,phone,image,rating,status)
+             VALUES (?,?,?,?,?,?,?,'active')
+             ON DUPLICATE KEY UPDATE cuisine_type=VALUES(cuisine_type),image=VALUES(image),rating=VALUES(rating)`,
+            [r.id, r.name, r.cuisine, r.address, r.phone, r.image, r.rating], () => {}
+        );
+    });
+    console.log('✅ Restaurants seeded');
 }
 
 // â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -557,7 +614,10 @@ app.post('/api/orders', authenticate, requireRole('customer'), (req, res) => {
          subtotal||0, delivery_fee||0, discount||0, total,
          payment_method||'cash', pay_status, coupon_code||null, notes||null],
         (err) => {
-            if (err) { console.error('Order error:', err.message); return res.json({ success: false, message: 'Failed to place order.' }); }
+            if (err) {
+                console.error('Order INSERT error:', err.message, '| Code:', err.code, '| SQL:', err.sql);
+                return res.json({ success: false, message: 'Failed to place order: ' + err.message });
+            }
             if (Array.isArray(items)) {
                 items.forEach(item => {
                     const qty = item.quantity || 1;
