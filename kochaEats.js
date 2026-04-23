@@ -2876,10 +2876,8 @@ function handleLogin() {
           }, 500);
         }
       } else {
-        // No items in cart — redirect to customer dashboard
-        closeModal("authModal");
-        setTimeout(() => { window.location.href = 'customer-dashboard.html'; }, 600);
-        return;
+        // No items in cart, just show success message
+        app.showToast("Login successful! You can now add items to cart.", "success");
       }
 
       if (rememberMe) {
