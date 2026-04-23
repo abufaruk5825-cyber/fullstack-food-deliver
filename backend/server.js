@@ -1099,7 +1099,7 @@ app.get('/api/admin/payments/analytics', authenticate, requireRole('admin'), (re
 });
 
 
-// placeholder
+// placeholders
 
 
 // ============================================================

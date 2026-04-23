@@ -1,0 +1,384 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KochaEats — Rider Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:#f0f2f5;color:#333}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:#1a237e;color:#fff;display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo span{font-size:1.1rem;font-weight:700;color:#ff6b35}
+.sidebar-logo i{font-size:1.3rem;color:#ff6b35}
+.sidebar-nav{flex:1;padding:10px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;color:rgba(255,255,255,.72);font-size:.875rem;border-left:3px solid transparent;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:rgba(255,107,53,.15);color:#fff;border-left-color:#ff6b35}
+.nav-item i{width:18px;text-align:center}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}
+.logout-btn{display:flex;align-items:center;gap:8px;background:rgba(255,107,53,.18);color:#ff6b35;border:1px solid rgba(255,107,53,.35);padding:9px 14px;border-radius:7px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.82rem;width:100%;transition:all .2s}
+.logout-btn:hover{background:#ff6b35;color:#fff}
+.main{margin-left:240px;min-height:100vh}
+.topbar{background:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.07);position:sticky;top:0;z-index:50}
+.topbar h1{font-size:1.05rem;font-weight:600;color:#1a237e}
+.rider-badge{background:#ff6b35;color:#fff;padding:5px 12px;border-radius:18px;font-size:.75rem;display:flex;align-items:center;gap:6px}
+.refresh-info{font-size:.72rem;color:#888;display:flex;align-items:center;gap:5px}
+.content{padding:22px}
+.section{display:none}.section.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:center;gap:12px}
+.stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.ic-orange{background:rgba(255,107,53,.12);color:#ff6b35}.ic-blue{background:rgba(26,35,126,.1);color:#1a237e}
+.ic-green{background:rgba(39,174,96,.12);color:#27ae60}.ic-purple{background:rgba(142,68,173,.12);color:#8e44ad}
+.stat-info h3{font-size:1.3rem;font-weight:700;color:#1a237e;line-height:1}
+.stat-info p{font-size:.7rem;color:#888;margin-top:3px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header h2{font-size:.9rem;font-weight:600;color:#1a237e}
+.card-body{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:500px}
+th{background:#f8f9ff;padding:9px 13px;text-align:left;font-size:.7rem;font-weight:600;color:#1a237e;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:9px 13px;font-size:.8rem;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:600;white-space:nowrap}
+.b-pending{background:#fff3e0;color:#e65100}.b-confirmed{background:#e3f2fd;color:#1565c0}
+.b-preparing{background:#f3e5f5;color:#6a1b9a}.b-ready{background:#e0f7fa;color:#00695c}
+.b-out_for_delivery{background:#e8eaf6;color:#283593}.b-delivered{background:#e8f5e9;color:#1b5e20}
+.b-cancelled,.b-failed{background:#ffebee;color:#b71c1c}
+.b-ready_for_pickup{background:#e0f7fa;color:#006064}
+.b-assigned_to_rider{background:#e8eaf6;color:#1a237e}
+.b-picked_up{background:#fff8e1;color:#f57f17}
+.b-rejected,.b-failed_delivery{background:#ffebee;color:#b71c1c}
+.b-refunded{background:#f3e5f5;color:#6a1b9a}
+.btn{padding:5px 11px;border-radius:6px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.73rem;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-primary{background:#1a237e;color:#fff}.btn-primary:hover{background:#283593}
+.btn-orange{background:#ff6b35;color:#fff}.btn-orange:hover{background:#e55a25}
+.btn-success{background:#27ae60;color:#fff}.btn-success:hover{background:#219a52}
+.btn-info{background:#2980b9;color:#fff}.btn-info:hover{background:#2471a3}
+.btn-sm{padding:3px 8px;font-size:.7rem}
+.action-group{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.loading{text-align:center;padding:32px;color:#888}
+.loading i{font-size:1.8rem;color:#1a237e;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:36px;color:#aaa}
+.empty-state i{font-size:2.2rem;margin-bottom:8px;display:block}
+.error-msg{background:#ffebee;color:#c62828;padding:10px 14px;border-radius:7px;margin:12px;font-size:.8rem}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal h3{font-size:.95rem;font-weight:600;color:#1a237e;margin-bottom:16px}
+.contact-row{display:flex;align-items:center;gap:12px;padding:11px;background:#f8f9ff;border-radius:8px;margin-bottom:8px}
+.contact-row i{color:#ff6b35;font-size:1rem;width:18px}
+.contact-row span{font-size:.85rem;color:#333}
+.modal-actions{display:flex;justify-content:flex-end;margin-top:16px}
+.profile-card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.05);max-width:480px}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1a237e,#ff6b35);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#fff;margin-bottom:18px}
+.profile-field{margin-bottom:12px}
+.profile-field label{font-size:.72rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.4px}
+.profile-field p{font-size:.9rem;color:#333;margin-top:3px}
+.tabs{display:flex;gap:0;border-bottom:2px solid #f0f0f0;margin-bottom:16px}
+.tab{padding:9px 16px;cursor:pointer;font-size:.82rem;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#1a237e;border-bottom-color:#1a237e;font-weight:600}
+.toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{padding:11px 16px;border-radius:8px;color:#fff;font-size:.8rem;font-family:'Poppins',sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;min-width:220px}
+.toast-success{background:#27ae60}.toast-error{background:#e74c3c}.toast-info{background:#2980b9}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<div class="sidebar">
+  <div class="sidebar-logo"><i class="fas fa-motorcycle"></i><span>KochaEats Rider</span></div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+    <div class="nav-item" data-section="available"><i class="fas fa-bell"></i> Available Orders</div>
+    <div class="nav-item" data-section="deliveries"><i class="fas fa-truck"></i> My Deliveries</div>
+    <div class="nav-item" data-section="earnings"><i class="fas fa-wallet"></i> Earnings</div>
+    <div class="nav-item" data-section="profile"><i class="fas fa-user"></i> Profile</div>
+  </nav>
+  <div class="sidebar-footer"><button class="logout-btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="refresh-info" id="refresh-info"><i class="fas fa-sync-alt"></i> Auto-refresh: 20s</span>
+      <div class="rider-badge"><i class="fas fa-motorcycle"></i><span id="rider-name">Rider</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div id="section-dashboard" class="section active">
+      <div class="stats-grid" id="stats-grid"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-clock"></i> Recent Deliveries</h2></div>
+        <div class="card-body" id="recent-deliveries"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-available" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-bell"></i> Available Orders</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadAvailable()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div class="card-body" id="available-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-deliveries" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-truck"></i> My Deliveries</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadDeliveries()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div class="tabs">
+          <div class="tab active" onclick="filterDeliveries('',this)">All</div>
+          <div class="tab" onclick="filterDeliveries('out_for_delivery',this)">Active</div>
+          <div class="tab" onclick="filterDeliveries('delivered',this)">Completed</div>
+        </div>
+        <div class="card-body" id="deliveries-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-earnings" class="section">
+      <div class="stats-grid" id="earnings-stats"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-history"></i> Delivery History</h2></div>
+        <div class="card-body" id="earnings-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-profile" class="section">
+      <div class="profile-card">
+        <div class="profile-avatar"><i class="fas fa-user"></i></div>
+        <div class="profile-field"><label>Full Name</label><p id="p-name">-</p></div>
+        <div class="profile-field"><label>Email</label><p id="p-email">-</p></div>
+        <div class="profile-field"><label>Phone</label><p id="p-phone">-</p></div>
+        <div class="profile-field"><label>Vehicle Type</label><p id="p-vehicle">-</p></div>
+        <div class="profile-field"><label>Vehicle Number</label><p id="p-vnum">-</p></div>
+        <div class="profile-field"><label>Status</label><p id="p-status">-</p></div>
+        <div style="margin-top:16px"><a href="kochaEats.html" class="btn btn-primary"><i class="fas fa-home"></i> Main Site</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <h3><i class="fas fa-address-book"></i> Customer Contact</h3>
+    <div id="contact-info"></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="document.getElementById('contact-modal').classList.remove('open')">Close</button></div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script>
+const API='http://localhost:3000';
+const token=localStorage.getItem('kochaToken');
+const user=JSON.parse(localStorage.getItem('kochaUser')||'{}');
+if(!token||user.role!=='rider'){window.location.href='kochaEats.html';}
+document.getElementById('rider-name').textContent=user.name||'Rider';
+document.getElementById('p-name').textContent=user.name||'-';
+document.getElementById('p-email').textContent=user.email||'-';
+document.getElementById('p-phone').textContent=user.phone||'-';
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+let refreshTimer=null,countdown=20,allDeliveries=[];
+
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast toast-'+type;
+  const ic=type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle';
+  t.innerHTML='<i class="fas fa-'+ic+'"></i> '+msg;
+  c.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+function badge(val){const v=(val||'').toLowerCase().replace(/ /g,'_');return '<span class="badge b-'+v+'">'+(val||'-')+'</span>';}
+function fmt(n){return 'ETB '+parseFloat(n||0).toFixed(2);}
+function fmtDate(d){return d?new Date(d).toLocaleDateString():'-';}
+async function api(url,opts={}){const r=await fetch(API+url,{headers:H(),...opts});return r.json();}
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>showSection(el.dataset.section));
+});
+document.getElementById('logout-btn').addEventListener('click',()=>{
+  clearInterval(refreshTimer);
+  localStorage.removeItem('kochaToken');localStorage.removeItem('kochaUser');
+  window.location.href='kochaEats.html';
+});
+document.getElementById('contact-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('contact-modal'))document.getElementById('contact-modal').classList.remove('open');
+});
+
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  document.querySelector('[data-section="'+name+'"]').classList.add('active');
+  const titles={dashboard:'Dashboard',available:'Available Orders',deliveries:'My Deliveries',earnings:'Earnings',profile:'Profile'};
+  document.getElementById('page-title').textContent=titles[name]||name;
+  const loaders={available:loadAvailable,deliveries:loadDeliveries,earnings:loadEarnings};
+  if(loaders[name])loaders[name]();
+}
+
+async function loadStats(){
+  try{
+    const d=await api('/api/rider/stats');
+    if(!d.success)throw new Error(d.message);
+    const s=d.data;
+    document.getElementById('stats-grid').innerHTML=`
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>${s.total_deliveries||0}</h3><p>Total Deliveries</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-blue"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>${s.active_deliveries||0}</h3><p>Active Deliveries</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-wallet"></i></div><div class="stat-info"><h3>ETB ${parseFloat(s.total_earnings||0).toFixed(0)}</h3><p>Total Earnings</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-purple"><i class="fas fa-star"></i></div><div class="stat-info"><h3>${parseFloat(s.rating||5).toFixed(1)}</h3><p>Rating</p></div></div>`;
+  }catch(e){document.getElementById('stats-grid').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function loadRecentDeliveries(){
+  try{
+    const d=await api('/api/rider/orders');
+    const rows=(d.data||[]).slice(0,5);
+    if(!rows.length){document.getElementById('recent-deliveries').innerHTML='<div class="empty-state"><i class="fas fa-truck"></i>No deliveries yet</div>';return;}
+    document.getElementById('recent-deliveries').innerHTML='<table><thead><tr><th>Order ID</th><th>Area</th><th>Total</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+      rows.map(o=>`<tr><td>#${o.id}</td><td>${o.delivery_area||'-'}</td><td>${fmt(o.total)}</td><td>${badge(o.order_status)}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){document.getElementById('recent-deliveries').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function loadAvailable(){
+  document.getElementById('available-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/rider/orders/available');
+    const orders=d.data||[];
+    if(!orders.length){document.getElementById('available-wrap').innerHTML='<div class="empty-state"><i class="fas fa-bell"></i>No available orders right now</div>';return;}
+    document.getElementById('available-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Restaurant</th><th>Area</th><th>Total</th><th>Actions</th></tr></thead><tbody>'+
+      orders.map(o=>`<tr>
+        <td>#${o.id}</td><td>${o.restaurant_name||'-'}</td>
+        <td>${o.delivery_area||'-'}</td><td>${fmt(o.total)}</td>
+        <td><button class="btn btn-success btn-sm" onclick="acceptOrder('${o.id}')"><i class="fas fa-check"></i> Accept</button></td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){document.getElementById('available-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function acceptOrder(id){
+  try{
+    const d=await api('/api/rider/orders/'+id+'/accept',{method:'PATCH'});
+    toast(d.message||'Accepted',d.success?'success':'error');
+    if(d.success){loadAvailable();loadStats();}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadDeliveries(status=''){
+  document.getElementById('deliveries-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const url='/api/rider/orders'+(status?'?status='+status:'');
+    const d=await api(url);
+    allDeliveries=d.data||[];
+    renderDeliveries(allDeliveries);
+  }catch(e){document.getElementById('deliveries-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+function filterDeliveries(status,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const filtered=status?allDeliveries.filter(o=>o.order_status===status):allDeliveries;
+  renderDeliveries(filtered);
+}
+
+function renderDeliveries(orders){
+  if(!orders.length){document.getElementById('deliveries-wrap').innerHTML='<div class="empty-state"><i class="fas fa-truck"></i>No deliveries found</div>';return;}
+  document.getElementById('deliveries-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Customer</th><th>Area</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+    orders.map(o=>'<tr>'+
+      '<td>#'+o.id+'</td><td>'+(o.user_name||'-')+'</td><td>'+(o.delivery_area||'-')+'</td>'+
+      '<td>'+fmt(o.total)+'</td>'+
+      '<td><span style="font-size:.72rem;font-weight:600;color:'+(o.payment_method==='cash'?'#e65100':'#1565c0')+'">'+
+        '<i class="fas '+(o.payment_method==='cash'?'fa-money-bill-wave':'fa-mobile-alt')+'"></i> '+(o.payment_method||'-')+'</span></td>'+
+      '<td>'+badge(o.order_status)+'</td><td>'+fmtDate(o.created_at)+'</td>'+
+      '<td><div class="action-group">'+
+        (o.order_status==='assigned_to_rider'?'<button class="btn btn-warning btn-sm" onclick="updateStatus(\''+o.id+'\',\'picked_up\')"><i class="fas fa-box"></i> Picked Up</button>':'')+
+        (o.order_status==='picked_up'?'<button class="btn btn-primary btn-sm" onclick="updateStatus(\''+o.id+'\',\'out_for_delivery\')"><i class="fas fa-motorcycle"></i> On Way</button>':'')+
+        (o.order_status==='out_for_delivery'?'<button class="btn btn-success btn-sm" onclick="updateStatus(\''+o.id+'\',\'delivered\')"><i class="fas fa-check"></i> Delivered</button>':'')+
+        (o.order_status==='delivered'&&o.payment_method==='cash'&&o.payment_status!=='paid'?'<button class="btn btn-orange btn-sm" onclick="collectCash(\''+o.id+'\')"><i class="fas fa-money-bill-wave"></i> Collect Cash</button>':'')+
+        '<button class="btn btn-info btn-sm" onclick="showContact(\''+o.id+'\')"><i class="fas fa-phone"></i></button>'+
+      '</div></td>'+
+    '</tr>').join('')+'</tbody></table>';
+}
+
+async function updateStatus(id, status){
+  try{
+    const d=await api('/api/rider/orders/'+id+'/status',{method:'PATCH',body:JSON.stringify({order_status:status})});
+    toast(d.message||'Updated',d.success?'success':'error');
+    if(d.success){loadDeliveries();loadStats();}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function markDelivered(id){ updateStatus(id,'delivered'); }
+
+async function collectCash(id){
+  if(!confirm('Confirm cash collected from customer?'))return;
+  try{
+    const d=await api('/api/rider/orders/'+id+'/collect-cash',{method:'POST'});
+    toast(d.success?'Cash collected! ETB '+(d.amount||''):'Error: '+d.message, d.success?'success':'error');
+    if(d.success)loadDeliveries();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function showContact(id){
+  document.getElementById('contact-info').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  document.getElementById('contact-modal').classList.add('open');
+  try{
+    const d=await api('/api/rider/orders/'+id+'/contact');
+    if(!d.success)throw new Error(d.message);
+    const c=d.data;
+    document.getElementById('contact-info').innerHTML=`
+      <div class="contact-row"><i class="fas fa-user"></i><span>${c.user_name||'-'}</span></div>
+      <div class="contact-row"><i class="fas fa-phone"></i><span>${c.user_phone||'-'}</span></div>
+      <div class="contact-row"><i class="fas fa-map-marker-alt"></i><span>${c.delivery_area||c.delivery_address||'-'}</span></div>`;
+  }catch(e){document.getElementById('contact-info').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function loadEarnings(){
+  try{
+    const [sd,od]=await Promise.all([api('/api/rider/stats'),api('/api/rider/orders?status=delivered')]);
+    const s=sd.data||{};
+    document.getElementById('earnings-stats').innerHTML=`
+      <div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB ${parseFloat(s.total_earnings||0).toFixed(0)}</h3><p>Total Earnings</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>${s.total_deliveries||0}</h3><p>Completed Deliveries</p></div></div>`;
+    const orders=od.data||[];
+    if(!orders.length){document.getElementById('earnings-wrap').innerHTML='<div class="empty-state"><i class="fas fa-history"></i>No completed deliveries yet</div>';return;}
+    document.getElementById('earnings-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Area</th><th>Amount</th><th>Payment</th><th>Date</th></tr></thead><tbody>'+
+      orders.map(o=>`<tr><td>#${o.id}</td><td>${o.delivery_area||'-'}</td><td>${fmt(o.total)}</td><td>${badge(o.payment_status)}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){document.getElementById('earnings-stats').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// Load rider profile details
+async function loadProfile(){
+  try{
+    const d=await api('/api/rider/profile');
+    if(d.success){
+      const r=d.data;
+      document.getElementById('p-vehicle').textContent=r.vehicle_type||'-';
+      document.getElementById('p-vnum').textContent=r.vehicle_number||'-';
+      document.getElementById('p-status').innerHTML='<span class="badge b-'+(r.approval_status||'pending')+'">'+(r.approval_status||'-')+'</span>';
+    }
+  }catch(e){}
+}
+
+// Auto-refresh
+function startRefresh(){
+  refreshTimer=setInterval(()=>{
+    countdown--;
+    document.getElementById('refresh-info').innerHTML='<i class="fas fa-sync-alt"></i> Refresh in: '+countdown+'s';
+    if(countdown<=0){
+      countdown=20;
+      document.getElementById('refresh-info').innerHTML='<i class="fas fa-sync-alt" style="animation:spin 1s linear infinite"></i> Refreshing...';
+      loadStats();
+      const active=document.querySelector('.section.active');
+      if(active&&active.id==='section-available')loadAvailable();
+      if(active&&active.id==='section-deliveries')loadDeliveries();
+      setTimeout(()=>{document.getElementById('refresh-info').innerHTML='<i class="fas fa-sync-alt"></i> Auto-refresh: 20s';},1000);
+    }
+  },1000);
+}
+
+loadStats();
+loadRecentDeliveries();
+loadProfile();
+startRefresh();
+</script>
+</body></html>

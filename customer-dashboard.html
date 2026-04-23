@@ -1,0 +1,668 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KochaEats — My Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:#f0f2f5;color:#333}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:#1a237e;color:#fff;display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo span{font-size:1.1rem;font-weight:700;color:#ff6b35}
+.sidebar-logo i{font-size:1.3rem;color:#ff6b35}
+.sidebar-nav{flex:1;padding:10px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;color:rgba(255,255,255,.72);font-size:.875rem;border-left:3px solid transparent;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:rgba(255,107,53,.15);color:#fff;border-left-color:#ff6b35}
+.nav-item i{width:18px;text-align:center}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}
+.logout-btn{display:flex;align-items:center;gap:8px;background:rgba(255,107,53,.18);color:#ff6b35;border:1px solid rgba(255,107,53,.35);padding:9px 14px;border-radius:7px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.82rem;width:100%;transition:all .2s}
+.logout-btn:hover{background:#ff6b35;color:#fff}
+.main{margin-left:240px;min-height:100vh}
+.topbar{background:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.07);position:sticky;top:0;z-index:50}
+.topbar h1{font-size:1.05rem;font-weight:600;color:#1a237e}
+.user-badge{background:#ff6b35;color:#fff;padding:5px 12px;border-radius:18px;font-size:.75rem;display:flex;align-items:center;gap:6px}
+.content{padding:22px}
+.section{display:none}.section.active{display:block}
+.welcome-banner{background:linear-gradient(135deg,#1a237e 0%,#3949ab 100%);color:#fff;border-radius:12px;padding:24px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+.welcome-banner h2{font-size:1.3rem;font-weight:700}
+.welcome-banner p{font-size:.85rem;opacity:.85;margin-top:5px}
+.welcome-banner i{font-size:3rem;opacity:.25}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:center;gap:12px}
+.stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.ic-orange{background:rgba(255,107,53,.12);color:#ff6b35}.ic-blue{background:rgba(26,35,126,.1);color:#1a237e}
+.ic-green{background:rgba(39,174,96,.12);color:#27ae60}.ic-purple{background:rgba(142,68,173,.12);color:#8e44ad}
+.stat-info h3{font-size:1.3rem;font-weight:700;color:#1a237e;line-height:1}
+.stat-info p{font-size:.7rem;color:#888;margin-top:3px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header h2{font-size:.9rem;font-weight:600;color:#1a237e}
+.card-body{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th{background:#f8f9ff;padding:9px 13px;text-align:left;font-size:.7rem;font-weight:600;color:#1a237e;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:9px 13px;font-size:.8rem;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:600;white-space:nowrap}
+.b-pending{background:#fff3e0;color:#e65100}.b-confirmed{background:#e3f2fd;color:#1565c0}
+.b-preparing{background:#f3e5f5;color:#6a1b9a}.b-ready{background:#e0f7fa;color:#00695c}
+.b-out_for_delivery{background:#e8eaf6;color:#283593}.b-delivered{background:#e8f5e9;color:#1b5e20}
+.b-cancelled,.b-failed{background:#ffebee;color:#b71c1c}
+.b-ready_for_pickup{background:#e0f7fa;color:#006064}
+.b-assigned_to_rider{background:#e8eaf6;color:#1a237e}
+.b-picked_up{background:#fff8e1;color:#f57f17}
+.b-rejected,.b-failed_delivery{background:#ffebee;color:#b71c1c}
+.b-refunded{background:#f3e5f5;color:#6a1b9a}
+.b-paid,.b-completed{background:#e8f5e9;color:#2e7d32}
+.b-awaiting_payment{background:#fff8e1;color:#f57f17}
+.btn{padding:5px 11px;border-radius:6px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.73rem;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-primary{background:#1a237e;color:#fff}.btn-primary:hover{background:#283593}
+.btn-orange{background:#ff6b35;color:#fff}.btn-orange:hover{background:#e55a25}
+.btn-success{background:#27ae60;color:#fff}.btn-success:hover{background:#219a52}
+.btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
+.btn-warning{background:#f39c12;color:#fff}.btn-warning:hover{background:#d68910}
+.btn-sm{padding:3px 8px;font-size:.7rem}
+.action-group{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.loading{text-align:center;padding:32px;color:#888}
+.loading i{font-size:1.8rem;color:#1a237e;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:36px;color:#aaa}
+.empty-state i{font-size:2.2rem;margin-bottom:8px;display:block}
+.error-msg{background:#ffebee;color:#c62828;padding:10px 14px;border-radius:7px;margin:12px;font-size:.8rem}
+.success-msg{background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:7px;margin-bottom:12px;font-size:.8rem}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:460px;box-shadow:0 10px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:.95rem;font-weight:600;color:#1a237e;margin-bottom:16px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:.76rem;font-weight:500;color:#555;margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem;outline:none;transition:border .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#1a237e}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.star-rating{display:flex;gap:6px;margin-bottom:4px}
+.star-rating i{font-size:1.6rem;color:#ddd;cursor:pointer;transition:color .15s}
+.star-rating i.lit{color:#ff6b35}
+.profile-form{background:#fff;border-radius:10px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.05);max-width:500px}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1a237e,#ff6b35);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#fff;margin-bottom:18px}
+.track-timeline{padding:20px 0}
+.track-step{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;position:relative}
+.track-step:not(:last-child):before{content:'';position:absolute;left:17px;top:36px;width:2px;height:calc(100% - 10px);background:#e0e0e0}
+.track-step.done:not(:last-child):before{background:#27ae60}
+.step-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;border:2px solid #e0e0e0;background:#fff;color:#aaa}
+.track-step.done .step-icon{background:#27ae60;border-color:#27ae60;color:#fff}
+.track-step.active .step-icon{background:#ff6b35;border-color:#ff6b35;color:#fff;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,53,.4)}50%{box-shadow:0 0 0 8px rgba(255,107,53,0)}}
+.step-info h4{font-size:.85rem;font-weight:600;color:#333}
+.step-info p{font-size:.75rem;color:#888;margin-top:2px}
+.track-step.done .step-info h4{color:#27ae60}
+.track-step.active .step-info h4{color:#ff6b35}
+.pagination{display:flex;align-items:center;gap:6px;padding:12px 18px;border-top:1px solid #f0f0f0}
+.page-btn{padding:4px 10px;border:1px solid #ddd;border-radius:5px;background:#fff;cursor:pointer;font-size:.75rem;font-family:'Poppins',sans-serif}
+.page-btn.active{background:#1a237e;color:#fff;border-color:#1a237e}
+.page-btn:hover:not(.active){background:#f0f2f5}
+.toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{padding:11px 16px;border-radius:8px;color:#fff;font-size:.8rem;font-family:'Poppins',sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;min-width:220px}
+.toast-success{background:#27ae60}.toast-error{background:#e74c3c}.toast-info{background:#2980b9}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.stats-grid{grid-template-columns:1fr 1fr}.welcome-banner{flex-direction:column;gap:10px}}
+</style></head><body>
+<div class="sidebar">
+  <div class="sidebar-logo"><i class="fas fa-utensils"></i><span>KochaEats</span></div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-section="dashboard"><i class="fas fa-home"></i> Dashboard</div>
+    <div class="nav-item" data-section="orders"><i class="fas fa-shopping-bag"></i> My Orders</div>
+    <div class="nav-item" data-section="track"><i class="fas fa-map-marker-alt"></i> Track Order</div>
+    <div class="nav-item" data-section="reviews"><i class="fas fa-star"></i> My Reviews</div>
+    <div class="nav-item" data-section="payments"><i class="fas fa-credit-card"></i> Payments</div>
+    <div class="nav-item" data-section="wallet"><i class="fas fa-coins"></i> Wallet</div>
+    <div class="nav-item" data-section="refunds"><i class="fas fa-undo"></i> Refunds</div>
+    <div class="nav-item" data-section="profile"><i class="fas fa-user"></i> Profile</div>
+  </nav>
+  <div class="sidebar-footer"><button class="logout-btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+</div>
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <div class="user-badge"><i class="fas fa-user-circle"></i><span id="user-name">Customer</span></div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="welcome-banner">
+        <div><h2>Welcome back, <span id="welcome-name">there</span>!</h2><p>Track your orders, leave reviews, and manage your profile.</p></div>
+        <i class="fas fa-utensils"></i>
+      </div>
+      <div class="stats-grid" id="dash-stats"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-clock"></i> Recent Orders</h2><a href="#" onclick="showSection('orders');return false" class="btn btn-primary btn-sm">View All</a></div>
+        <div class="card-body" id="recent-orders"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- MY ORDERS -->
+    <div id="section-orders" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-shopping-bag"></i> My Orders</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadOrders(1)"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div class="card-body" id="orders-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+        <div class="pagination" id="orders-pagination"></div>
+      </div>
+    </div>
+
+    <!-- TRACK ORDER -->
+    <div id="section-track" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-map-marker-alt"></i> Track Your Order</h2></div>
+        <div style="padding:18px;display:flex;gap:8px">
+          <input type="text" id="track-input" placeholder="Enter Order ID (e.g. ORD-1234567890)" style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:7px;font-family:'Poppins',sans-serif;font-size:.85rem;outline:none">
+          <button class="btn btn-orange" onclick="trackOrder()"><i class="fas fa-search"></i> Track</button>
+        </div>
+        <div id="track-result" style="padding:0 18px 18px"></div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div id="section-reviews" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-star"></i> My Reviews</h2></div>
+        <div class="card-body" id="reviews-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div id="section-payments" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-credit-card"></i> Payment History</h2></div>
+        <div class="card-body" id="payments-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- REFUNDS -->
+    <div id="section-refunds" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-undo"></i> My Refunds</h2></div>
+        <div class="card-body" id="refunds-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- WALLET -->
+    <div id="section-wallet" class="section">
+      <div class="stats-grid" id="wallet-stats"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-header"><h2><i class="fas fa-plus-circle"></i> Top Up Wallet</h2></div>
+        <div class="card-body" style="padding:18px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+            <div class="form-group"><label>Amount (ETB)</label><input type="number" id="topup-amount" placeholder="e.g. 100" min="10" max="10000"></div>
+            <div class="form-group"><label>Method</label>
+              <select id="topup-method" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
+                <option value="telebirr">Telebirr</option><option value="cbebirr">CBE Birr</option>
+                <option value="amole">Amole</option><option value="card">Card</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Reference</label><input type="text" id="topup-ref" placeholder="Transaction ID"></div>
+          </div>
+          <div id="topup-msg"></div>
+          <button class="btn btn-orange" onclick="topUpWallet()"><i class="fas fa-plus"></i> Top Up</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-history"></i> Wallet Transactions</h2></div>
+        <div class="card-body" id="wallet-txns"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="section-profile" class="section">
+      <div class="profile-form">
+        <div class="profile-avatar" id="profile-avatar"><i class="fas fa-user"></i></div>
+        <h3 style="font-size:.95rem;font-weight:600;color:#1a237e;margin-bottom:16px"><i class="fas fa-edit"></i> Edit Profile</h3>
+        <div id="profile-msg"></div>
+        <div class="form-group"><label>Full Name</label><input type="text" id="prof-name" placeholder="Your name"></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="prof-phone" placeholder="Phone number"></div>
+        <div class="form-group"><label>Delivery Address</label><input type="text" id="prof-address" placeholder="Default delivery address"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-orange" onclick="updateProfile()"><i class="fas fa-save"></i> Save Changes</button>
+          <a href="kochaEats.html" class="btn btn-primary"><i class="fas fa-home"></i> Main Site</a>
+        </div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="profile-form" style="margin-top:18px">
+        <h3 style="font-size:.95rem;font-weight:600;color:#1a237e;margin-bottom:16px"><i class="fas fa-key"></i> Change Password</h3>
+        <div id="pw-msg"></div>
+        <div class="form-group"><label>Current Password</label><input type="password" id="cur-pw" placeholder="Current password"></div>
+        <div class="form-group"><label>New Password</label><input type="password" id="new-pw" placeholder="Min 8 chars, uppercase, number" oninput="checkPwStrength(this.value)">
+          <div style="height:4px;background:#e0e0e0;border-radius:2px;margin-top:5px;overflow:hidden"><div id="pw-strength-bar" style="height:100%;border-radius:2px;transition:width .3s,background .3s;width:0"></div></div>
+          <div id="pw-strength-label" style="font-size:.7rem;color:#888;margin-top:2px">Enter a password</div>
+        </div>
+        <div class="form-group"><label>Confirm New Password</label><input type="password" id="conf-pw" placeholder="Repeat new password"></div>
+        <button class="btn btn-orange" onclick="changePassword()"><i class="fas fa-lock"></i> Change Password</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal">
+    <h3><i class="fas fa-star"></i> Leave a Review</h3>
+    <input type="hidden" id="rv-order-id">
+    <div class="form-group">
+      <label>Rating</label>
+      <div class="star-rating" id="star-rating">
+        <i class="fas fa-star" data-v="1"></i><i class="fas fa-star" data-v="2"></i>
+        <i class="fas fa-star" data-v="3"></i><i class="fas fa-star" data-v="4"></i>
+        <i class="fas fa-star" data-v="5"></i>
+      </div>
+    </div>
+    <div class="form-group"><label>Comment</label><textarea id="rv-comment" rows="4" placeholder="Share your experience..."></textarea></div>
+    <div id="rv-msg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('review-modal')">Cancel</button>
+      <button class="btn btn-orange" onclick="submitReview()"><i class="fas fa-paper-plane"></i> Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const API='http://localhost:3000';
+const token=localStorage.getItem('kochaToken');
+const user=JSON.parse(localStorage.getItem('kochaUser')||'{}');
+if(!token||user.role!=='customer'){window.location.href='kochaEats.html';}
+
+const displayName=user.name||'Customer';
+document.getElementById('user-name').textContent=displayName;
+document.getElementById('welcome-name').textContent=displayName.split(' ')[0];
+document.getElementById('prof-name').value=user.name||'';
+document.getElementById('prof-phone').value=user.phone||'';
+document.getElementById('prof-address').value=user.address||'';
+// Avatar initials
+const initials=displayName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+document.getElementById('profile-avatar').textContent=initials;
+
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+let selectedRating=0,reviewedOrders=new Set(),currentPage=1,totalPages=1;
+let trackRefreshTimer=null;
+
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast toast-'+type;
+  const ic=type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle';
+  t.innerHTML='<i class="fas fa-'+ic+'"></i> '+msg;
+  c.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+function badge(val){const v=(val||'').toLowerCase().replace(/ /g,'_');return '<span class="badge b-'+v+'">'+(val||'-')+'</span>';}
+function stars(n){let s='';for(let i=1;i<=5;i++)s+='<i class="fas fa-star" style="color:'+(i<=n?'#ff6b35':'#ddd')+'"></i>';return s;}
+function fmt(n){return 'ETB '+parseFloat(n||0).toFixed(2);}
+function fmtDate(d){return d?new Date(d).toLocaleDateString():'-';}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+async function api(url,opts={}){const r=await fetch(API+url,{headers:H(),...opts});return r.json();}
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>showSection(el.dataset.section));
+});
+document.getElementById('logout-btn').addEventListener('click',()=>{
+  localStorage.removeItem('kochaToken');localStorage.removeItem('kochaUser');
+  window.location.href='kochaEats.html';
+});
+document.getElementById('review-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('review-modal'))closeModal('review-modal');
+});
+
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  document.querySelector('[data-section="'+name+'"]').classList.add('active');
+  const titles={dashboard:'Dashboard',orders:'My Orders',track:'Track Order',reviews:'My Reviews',payments:'Payments',wallet:'My Wallet',refunds:'My Refunds',profile:'Profile'};
+  document.getElementById('page-title').textContent=titles[name]||name;
+  if(trackRefreshTimer){clearInterval(trackRefreshTimer);trackRefreshTimer=null;}
+  const loaders={orders:()=>loadOrders(1),reviews:loadReviews,payments:loadPayments,wallet:loadWallet,refunds:loadCustomerRefunds};
+  if(loaders[name])loaders[name]();
+}
+
+// DASHBOARD STATS
+async function loadDashStats(){
+  try{
+    const d=await api('/api/orders?limit=100');
+    const orders=d.data||[];
+    const total=orders.length;
+    const pending=orders.filter(o=>!['delivered','cancelled','failed'].includes(o.order_status)).length;
+    const done=orders.filter(o=>o.order_status==='delivered').length;
+    const spent=orders.filter(o=>o.payment_status==='paid').reduce((s,o)=>s+parseFloat(o.total||0),0);
+    document.getElementById('dash-stats').innerHTML=`
+      <div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-shopping-bag"></i></div><div class="stat-info"><h3>${total}</h3><p>Total Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-blue"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>${pending}</h3><p>Pending Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>${done}</h3><p>Completed</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-purple"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB ${spent.toFixed(0)}</h3><p>Total Spent</p></div></div>`;
+  }catch(e){document.getElementById('dash-stats').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function loadRecentOrders(){
+  try{
+    const d=await api('/api/orders?limit=5');
+    const orders=d.data||[];
+    if(!orders.length){document.getElementById('recent-orders').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i>No orders yet. <a href="kochaEats.html">Order now!</a></div>';return;}
+    document.getElementById('recent-orders').innerHTML='<table><thead><tr><th>Order ID</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead><tbody>'+
+      orders.map(o=>`<tr><td>#${o.id}</td><td>${fmt(o.total)}</td><td>${badge(o.order_status)}</td><td>${badge(o.payment_status)}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){document.getElementById('recent-orders').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// ORDERS
+async function loadOrders(page=1){
+  currentPage=page;
+  document.getElementById('orders-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const [od,rvd]=await Promise.all([
+      api('/api/orders?page='+page+'&limit=10'),
+      api('/api/my-reviews')
+    ]);
+    const orders=od.data||[];
+    reviewedOrders=new Set((rvd.data||[]).map(r=>r.order_id));
+    totalPages=Math.ceil((od.total||orders.length)/10)||1;
+    if(!orders.length){document.getElementById('orders-wrap').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i>No orders yet. <a href="kochaEats.html">Start ordering!</a></div>';renderPagination();return;}
+    document.getElementById('orders-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Total</th><th>Method</th><th>Order Status</th><th>Payment</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      orders.map(o=>{
+        const st=o.order_status||'';
+        const canCancel=['pending','confirmed'].includes(st);
+        const canReorder=st==='delivered';
+        const canReview=st==='delivered'&&!reviewedOrders.has(o.id);
+        return `<tr>
+          <td>#${o.id}</td><td>${fmt(o.total)}</td><td>${o.payment_method||'-'}</td>
+          <td>${badge(o.order_status)}</td><td>${badge(o.payment_status)}</td>
+          <td>${fmtDate(o.created_at)}</td>
+          <td><div class="action-group">
+            <button class="btn btn-primary btn-sm" onclick="goTrack('${o.id}')"><i class="fas fa-map-marker-alt"></i> Track</button>
+            ${canCancel?'<button class="btn btn-danger btn-sm" onclick="cancelOrder(\''+o.id+'\')"><i class="fas fa-times"></i> Cancel</button>':''}
+            ${canReorder?'<button class="btn btn-warning btn-sm" onclick="reorder(\''+o.id+'\')"><i class="fas fa-redo"></i> Reorder</button>':''}
+            ${canReview?'<button class="btn btn-orange btn-sm" onclick="openReview(\''+o.id+'\')"><i class="fas fa-star"></i> Review</button>':''}
+            ${st==='delivered'&&reviewedOrders.has(o.id)?'<span style="color:#27ae60;font-size:.72rem"><i class="fas fa-check-circle"></i> Reviewed</span>':''}
+          </div></td>
+        </tr>`;
+      }).join('')+'</tbody></table>';
+    renderPagination();
+  }catch(e){document.getElementById('orders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+function renderPagination(){
+  const p=document.getElementById('orders-pagination');
+  if(totalPages<=1){p.innerHTML='';return;}
+  let html='';
+  for(let i=1;i<=totalPages;i++)html+='<button class="page-btn'+(i===currentPage?' active':'')+'" onclick="loadOrders('+i+')">'+i+'</button>';
+  p.innerHTML=html;
+}
+
+async function cancelOrder(id){
+  if(!confirm('Cancel this order?'))return;
+  try{
+    const d=await api('/api/orders/'+id+'/cancel',{method:'POST'});
+    toast(d.message||'Cancelled',d.success?'success':'error');
+    if(d.success)loadOrders(currentPage);
+  }catch(e){toast(e.message,'error');}
+}
+
+async function reorder(id){
+  try{
+    const d=await api('/api/orders/'+id+'/reorder',{method:'POST'});
+    toast(d.message||'Reordered',d.success?'success':'error');
+    if(d.success)loadOrders(1);
+  }catch(e){toast(e.message,'error');}
+}
+
+function goTrack(id){
+  showSection('track');
+  document.getElementById('track-input').value=id;
+  trackOrder();
+}
+
+// TRACK ORDER
+const STEPS=[
+  {key:'pending',label:'Order Placed',icon:'fa-shopping-cart',desc:'Your order has been received'},
+  {key:'confirmed',label:'Confirmed',icon:'fa-check',desc:'Restaurant confirmed your order'},
+  {key:'preparing',label:'Preparing',icon:'fa-fire',desc:'Your food is being prepared'},
+  {key:'ready_for_pickup',label:'Ready for Pickup',icon:'fa-box',desc:'Order is ready for rider pickup'},
+  {key:'assigned_to_rider',label:'Rider Assigned',icon:'fa-user-check',desc:'A rider has been assigned'},
+  {key:'picked_up',label:'Picked Up',icon:'fa-motorcycle',desc:'Rider has picked up your order'},
+  {key:'out_for_delivery',label:'Out for Delivery',icon:'fa-road',desc:'Rider is on the way to you'},
+  {key:'delivered',label:'Delivered',icon:'fa-check-circle',desc:'Order delivered successfully'}
+];
+
+async function trackOrder(){
+  const id=document.getElementById('track-input').value.trim();
+  if(!id){document.getElementById('track-result').innerHTML='<div class="error-msg">Please enter an Order ID.</div>';return;}
+  document.getElementById('track-result').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/orders/'+id+'/detail');
+    if(!d.success)throw new Error(d.message||'Order not found');
+    renderTrack(d.data);
+    // Auto-refresh if active
+    if(trackRefreshTimer)clearInterval(trackRefreshTimer);
+    const active=!['delivered','cancelled','failed'].includes(d.data.order_status);
+    if(active){
+      trackRefreshTimer=setInterval(async()=>{
+        const r=await api('/api/orders/'+id+'/detail');
+        if(r.success)renderTrack(r.data);
+        if(['delivered','cancelled','failed'].includes(r.data&&r.data.order_status)){clearInterval(trackRefreshTimer);trackRefreshTimer=null;}
+      },15000);
+    }
+  }catch(e){document.getElementById('track-result').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+function renderTrack(o){
+  const st=o.order_status||'pending';
+  const stepIdx=STEPS.findIndex(s=>s.key===st);
+  const isCancelled=st==='cancelled'||st==='failed';
+  let stepsHtml=STEPS.map((s,i)=>{
+    const done=i<stepIdx||(i===stepIdx&&!isCancelled);
+    const active=i===stepIdx&&!isCancelled;
+    return `<div class="track-step ${done?'done':''} ${active?'active':''}">
+      <div class="step-icon"><i class="fas ${s.icon}"></i></div>
+      <div class="step-info"><h4>${s.label}</h4><p>${s.desc}</p></div>
+    </div>`;
+  }).join('');
+  if(isCancelled)stepsHtml='<div style="text-align:center;padding:24px;color:#e74c3c"><i class="fas fa-times-circle" style="font-size:2.5rem;margin-bottom:10px;display:block"></i><strong>Order '+st.charAt(0).toUpperCase()+st.slice(1)+'</strong></div>';
+  document.getElementById('track-result').innerHTML=`
+    <div style="background:#f8f9ff;border-radius:10px;padding:18px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <div><strong style="font-size:.85rem">Order #${o.id}</strong><br><span style="font-size:.75rem;color:#888">${fmtDate(o.created_at)}</span></div>
+        <div style="text-align:right">${badge(o.order_status)}<br><span style="font-size:.75rem;color:#888">${fmt(o.total)}</span></div>
+      </div>
+      <div class="track-timeline">${stepsHtml}</div>
+      ${o.rider_name?'<div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#2e7d32"><i class="fas fa-motorcycle"></i> Rider: <strong>'+o.rider_name+'</strong>'+(o.rider_phone?' — '+o.rider_phone:'')+'</div>':''}
+    </div>
+    ${!isCancelled&&o.order_status!=='delivered'?'<p style="font-size:.75rem;color:#888;text-align:center"><i class="fas fa-sync-alt"></i> Auto-refreshing every 15 seconds</p>':''}`;
+}
+
+// REVIEWS
+async function loadReviews(){
+  document.getElementById('reviews-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/my-reviews');
+    const reviews=d.data||[];
+    if(!reviews.length){document.getElementById('reviews-wrap').innerHTML='<div class="empty-state"><i class="fas fa-star"></i>No reviews yet. Complete an order to leave a review!</div>';return;}
+    document.getElementById('reviews-wrap').innerHTML='<table><thead><tr><th>Restaurant</th><th>Order ID</th><th>Rating</th><th>Comment</th><th>Date</th></tr></thead><tbody>'+
+      reviews.map(r=>`<tr>
+        <td>${r.restaurant_name||'-'}</td><td>#${r.order_id||'-'}</td>
+        <td>${stars(r.rating)}</td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.comment||'-'}</td>
+        <td>${fmtDate(r.created_at)}</td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){document.getElementById('reviews-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+function openReview(orderId){
+  document.getElementById('rv-order-id').value=orderId;
+  document.getElementById('rv-comment').value='';
+  document.getElementById('rv-msg').innerHTML='';
+  selectedRating=0;updateStars(0);
+  document.getElementById('review-modal').classList.add('open');
+}
+function updateStars(n){
+  document.querySelectorAll('#star-rating i').forEach(s=>{
+    s.classList.toggle('lit',parseInt(s.dataset.v)<=n);
+  });
+}
+document.querySelectorAll('#star-rating i').forEach(s=>{
+  s.addEventListener('click',()=>{selectedRating=parseInt(s.dataset.v);updateStars(selectedRating);});
+  s.addEventListener('mouseover',()=>updateStars(parseInt(s.dataset.v)));
+  s.addEventListener('mouseout',()=>updateStars(selectedRating));
+});
+async function submitReview(){
+  const orderId=document.getElementById('rv-order-id').value;
+  const comment=document.getElementById('rv-comment').value.trim();
+  const msg=document.getElementById('rv-msg');
+  if(!selectedRating){msg.innerHTML='<div class="error-msg">Please select a rating.</div>';return;}
+  try{
+    const d=await api('/api/reviews',{method:'POST',body:JSON.stringify({order_id:orderId,rating:selectedRating,comment})});
+    if(!d.success)throw new Error(d.message);
+    toast('Review submitted!','success');
+    closeModal('review-modal');
+    loadOrders(currentPage);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// PAYMENTS
+async function loadPayments(){
+  document.getElementById('payments-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/payments');
+    const payments=d.data||[];
+    if(!payments.length){document.getElementById('payments-wrap').innerHTML='<div class="empty-state"><i class="fas fa-credit-card"></i>No payment records yet</div>';return;}
+    const total=payments.filter(p=>p.status==='completed').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+    document.getElementById('payments-wrap').innerHTML=
+      '<div style="padding:12px 18px;background:#e8f5e9;color:#2e7d32;font-size:.82rem;border-bottom:1px solid #f0f0f0"><i class="fas fa-coins"></i> Total Paid: <strong>ETB '+total.toFixed(2)+'</strong></div>'+
+      '<table><thead><tr><th>ID</th><th>Order ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th></tr></thead><tbody>'+
+      payments.map(p=>`<tr>
+        <td>#${p.id}</td><td>#${p.order_id||'-'}</td><td>${fmt(p.amount)}</td>
+        <td>${p.method||'-'}</td><td>${badge(p.status)}</td>
+        <td>${p.reference||'-'}</td><td>${fmtDate(p.created_at)}</td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){document.getElementById('payments-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// PROFILE
+async function updateProfile(){
+  const name=document.getElementById('prof-name').value.trim();
+  const phone=document.getElementById('prof-phone').value.trim();
+  const address=document.getElementById('prof-address').value.trim();
+  const msg=document.getElementById('profile-msg');
+  if(!name){msg.innerHTML='<div class="error-msg">Name is required.</div>';return;}
+  try{
+    const d=await api('/api/profile',{method:'PATCH',body:JSON.stringify({name,phone,address})});
+    if(!d.success)throw new Error(d.message);
+    user.name=name;user.phone=phone;user.address=address;
+    localStorage.setItem('kochaUser',JSON.stringify(user));
+    document.getElementById('user-name').textContent=name;
+    document.getElementById('welcome-name').textContent=name.split(' ')[0];
+    const ini=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('profile-avatar').textContent=ini;
+    msg.innerHTML='<div class="success-msg"><i class="fas fa-check-circle"></i> Profile updated!</div>';
+    setTimeout(()=>msg.innerHTML='',3000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// CHANGE PASSWORD
+function checkPwStrength(pw){
+  const bar=document.getElementById('pw-strength-bar');
+  const lbl=document.getElementById('pw-strength-label');
+  let score=0;
+  if(pw.length>=8)score++;if(/[A-Z]/.test(pw))score++;if(/[a-z]/.test(pw))score++;if(/[0-9]/.test(pw))score++;if(/[^A-Za-z0-9]/.test(pw))score++;
+  const levels=[{w:'0%',bg:'#e0e0e0',t:'Enter a password'},{w:'20%',bg:'#e74c3c',t:'Very weak'},{w:'40%',bg:'#e67e22',t:'Weak'},{w:'60%',bg:'#f39c12',t:'Fair'},{w:'80%',bg:'#27ae60',t:'Strong'},{w:'100%',bg:'#1a237e',t:'Very strong'}];
+  const l=levels[score]||levels[0];
+  bar.style.width=l.w;bar.style.background=l.bg;lbl.textContent=l.t;lbl.style.color=l.bg;
+}
+async function changePassword(){
+  const cur=document.getElementById('cur-pw').value;
+  const nw=document.getElementById('new-pw').value;
+  const conf=document.getElementById('conf-pw').value;
+  const msg=document.getElementById('pw-msg');
+  if(!cur||!nw||!conf){msg.innerHTML='<div class="error-msg">All fields are required.</div>';return;}
+  if(nw!==conf){msg.innerHTML='<div class="error-msg">New passwords do not match.</div>';return;}
+  if(nw.length<8){msg.innerHTML='<div class="error-msg">Password must be at least 8 characters.</div>';return;}
+  if(!/[A-Z]/.test(nw)||!/[a-z]/.test(nw)||!/[0-9]/.test(nw)){msg.innerHTML='<div class="error-msg">Password must contain uppercase, lowercase, and a number.</div>';return;}
+  try{
+    const d=await api('/api/auth/change-password',{method:'POST',body:JSON.stringify({current_password:cur,new_password:nw,confirm_password:conf})});
+    if(!d.success)throw new Error(d.message);
+    msg.innerHTML='<div class="success-msg"><i class="fas fa-check-circle"></i> Password changed successfully!</div>';
+    document.getElementById('cur-pw').value='';document.getElementById('new-pw').value='';document.getElementById('conf-pw').value='';
+    setTimeout(()=>msg.innerHTML='',4000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// CUSTOMER REFUNDS
+async function loadCustomerRefunds(){
+  document.getElementById('refunds-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/refunds');
+    const refunds=d.data||[];
+    if(!refunds.length){document.getElementById('refunds-wrap').innerHTML='<div class="empty-state"><i class="fas fa-undo"></i>No refunds yet</div>';return;}
+    document.getElementById('refunds-wrap').innerHTML='<table><thead><tr><th>Ref</th><th>Order</th><th>Amount</th><th>Method</th><th>Reason</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+      refunds.map(r=>'<tr>'+
+        '<td style="font-size:.72rem">'+r.refund_ref+'</td>'+
+        '<td>#'+(r.order_id||'-')+'</td>'+
+        '<td style="font-weight:600;color:#e74c3c">ETB '+parseFloat(r.amount||0).toFixed(2)+'</td>'+
+        '<td>'+(r.method||'-')+'</td>'+
+        '<td style="font-size:.75rem">'+(r.reason||'-').replace(/_/g,' ')+'</td>'+
+        '<td>'+badge(r.status)+'</td>'+
+        '<td>'+fmtDate(r.created_at)+'</td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('refunds-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// WALLET
+async function loadWallet(){
+  try{
+    const d=await api('/api/wallet');
+    if(!d.success)throw new Error(d.message);
+    const w=d.data;
+    document.getElementById('wallet-stats').innerHTML=
+      '<div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB '+parseFloat(w.balance||0).toFixed(2)+'</h3><p>Wallet Balance</p></div></div>'+
+      '<div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3>'+(w.status||'active').toUpperCase()+'</h3><p>Wallet Status</p></div></div>';
+    const txns=w.transactions||[];
+    if(!txns.length){document.getElementById('wallet-txns').innerHTML='<div class="empty-state"><i class="fas fa-history"></i>No transactions yet</div>';return;}
+    document.getElementById('wallet-txns').innerHTML='<table><thead><tr><th>Type</th><th>Amount</th><th>Balance After</th><th>Description</th><th>Date</th></tr></thead><tbody>'+
+      txns.map(t=>'<tr>'+
+        '<td><span class="badge '+(t.type==='credit'||t.type==='refund'?'b-delivered':'b-pending')+'">'+t.type+'</span></td>'+
+        '<td style="color:'+(t.type==='credit'||t.type==='refund'?'#27ae60':'#e74c3c')+';font-weight:600">'+
+          (t.type==='credit'||t.type==='refund'?'+':'-')+'ETB '+parseFloat(t.amount||0).toFixed(2)+'</td>'+
+        '<td>ETB '+parseFloat(t.balance_after||0).toFixed(2)+'</td>'+
+        '<td style="font-size:.75rem">'+(t.description||'-')+'</td>'+
+        '<td>'+fmtDate(t.created_at)+'</td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('wallet-stats').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function topUpWallet(){
+  const amount=parseFloat(document.getElementById('topup-amount').value);
+  const method=document.getElementById('topup-method').value;
+  const reference=document.getElementById('topup-ref').value.trim();
+  const msg=document.getElementById('topup-msg');
+  if(!amount||amount<10){msg.innerHTML='<div class="error-msg">Minimum top-up is ETB 10.</div>';return;}
+  if(!reference){msg.innerHTML='<div class="error-msg">Please enter your transaction reference.</div>';return;}
+  try{
+    const d=await api('/api/wallet/topup',{method:'POST',body:JSON.stringify({amount,method,reference})});
+    if(!d.success)throw new Error(d.message);
+    msg.innerHTML='<div class="success-msg"><i class="fas fa-check-circle"></i> Wallet topped up! New balance: ETB '+parseFloat(d.new_balance||0).toFixed(2)+'</div>';
+    document.getElementById('topup-amount').value='';
+    document.getElementById('topup-ref').value='';
+    loadWallet();
+    setTimeout(()=>msg.innerHTML='',4000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// INIT
+loadDashStats();
+loadRecentOrders();
+</script>
+</body></html>

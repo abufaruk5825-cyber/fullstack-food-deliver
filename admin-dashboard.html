@@ -1,0 +1,1069 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KochaEats Admin Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+CSSPLACEHOLDER
+</style>
+</head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KochaEats — Admin Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:#f0f2f5;color:#333}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:#1a237e;color:#fff;display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo span{font-size:1.1rem;font-weight:700;color:#ff6b35}
+.sidebar-logo i{font-size:1.3rem;color:#ff6b35}
+.sidebar-nav{flex:1;padding:10px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;color:rgba(255,255,255,.72);font-size:.875rem;border-left:3px solid transparent;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:rgba(255,107,53,.15);color:#fff;border-left-color:#ff6b35}
+.nav-item i{width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:#ff6b35;color:#fff;border-radius:10px;padding:1px 7px;font-size:.68rem;font-weight:600}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}
+.logout-btn{display:flex;align-items:center;gap:8px;background:rgba(255,107,53,.18);color:#ff6b35;border:1px solid rgba(255,107,53,.35);padding:9px 14px;border-radius:7px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.82rem;width:100%;transition:all .2s}
+.logout-btn:hover{background:#ff6b35;color:#fff}
+.main{margin-left:240px;min-height:100vh}
+.topbar{background:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.07);position:sticky;top:0;z-index:50}
+.topbar h1{font-size:1.05rem;font-weight:600;color:#1a237e}
+.admin-badge{background:#1a237e;color:#fff;padding:5px 12px;border-radius:18px;font-size:.75rem;display:flex;align-items:center;gap:6px}
+.content{padding:22px}
+.section{display:none}.section.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:center;gap:12px}
+.stat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0}
+.ic-orange{background:rgba(255,107,53,.12);color:#ff6b35}.ic-blue{background:rgba(26,35,126,.1);color:#1a237e}
+.ic-green{background:rgba(39,174,96,.12);color:#27ae60}.ic-purple{background:rgba(142,68,173,.12);color:#8e44ad}
+.ic-red{background:rgba(231,76,60,.12);color:#e74c3c}.ic-teal{background:rgba(26,188,156,.12);color:#1abc9c}
+.ic-yellow{background:rgba(243,156,18,.12);color:#f39c12}
+.stat-info h3{font-size:1.3rem;font-weight:700;color:#1a237e;line-height:1}
+.stat-info p{font-size:.7rem;color:#888;margin-top:3px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header h2{font-size:.9rem;font-weight:600;color:#1a237e}
+.card-body{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:580px}
+th{background:#f8f9ff;padding:9px 13px;text-align:left;font-size:.7rem;font-weight:600;color:#1a237e;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:9px 13px;font-size:.8rem;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:600;white-space:nowrap}
+.b-pending{background:#fff3e0;color:#e65100}.b-confirmed{background:#e3f2fd;color:#1565c0}
+.b-preparing{background:#f3e5f5;color:#6a1b9a}.b-ready{background:#e0f7fa;color:#00695c}
+.b-out_for_delivery{background:#e8eaf6;color:#283593}.b-delivered{background:#e8f5e9;color:#1b5e20}
+.b-cancelled,.b-failed{background:#ffebee;color:#b71c1c}
+.b-paid,.b-completed,.b-active,.b-approved{background:#e8f5e9;color:#2e7d32}
+.b-awaiting_payment{background:#fff8e1;color:#f57f17}
+.b-suspended,.b-rejected{background:#ffebee;color:#c62828}
+.b-admin{background:#e8eaf6;color:#283593}.b-customer{background:#e3f2fd;color:#1565c0}
+.b-rider{background:#f3e5f5;color:#6a1b9a}.b-inactive{background:#f5f5f5;color:#757575}
+.btn{padding:5px 11px;border-radius:6px;border:none;cursor:pointer;font-family:'Poppins',sans-serif;font-size:.73rem;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.btn-primary{background:#1a237e;color:#fff}.btn-primary:hover{background:#283593}
+.btn-orange{background:#ff6b35;color:#fff}.btn-orange:hover{background:#e55a25}
+.btn-success{background:#27ae60;color:#fff}.btn-success:hover{background:#219a52}
+.btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
+.btn-warning{background:#f39c12;color:#fff}.btn-warning:hover{background:#d68910}
+.btn-sm{padding:3px 8px;font-size:.7rem}
+.action-group{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.inline-select{padding:4px 6px;border:1px solid #ddd;border-radius:5px;font-family:'Poppins',sans-serif;font-size:.73rem;color:#333;background:#fff;cursor:pointer;max-width:130px}
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:12px 18px;border-bottom:1px solid #f0f0f0}
+.filter-bar input,.filter-bar select{padding:6px 9px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.78rem;outline:none}
+.filter-bar input:focus,.filter-bar select:focus{border-color:#1a237e}
+.loading{text-align:center;padding:32px;color:#888}
+.loading i{font-size:1.8rem;color:#1a237e;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:36px;color:#aaa}
+.empty-state i{font-size:2.2rem;margin-bottom:8px;display:block}
+.error-msg{background:#ffebee;color:#c62828;padding:10px 14px;border-radius:7px;margin:12px;font-size:.8rem}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:22px;width:90%;max-width:480px;box-shadow:0 10px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:.95rem;font-weight:600;color:#1a237e;margin-bottom:16px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:.76rem;font-weight:500;color:#555;margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem;outline:none;transition:border .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#1a237e}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.add-form{background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:18px}
+.add-form h3{font-size:.9rem;font-weight:600;color:#1a237e;margin-bottom:12px}
+.toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{padding:11px 16px;border-radius:8px;color:#fff;font-size:.8rem;font-family:'Poppins',sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;animation:slideIn .3s ease;min-width:220px}
+.toast-success{background:#27ae60}.toast-error{background:#e74c3c}.toast-info{background:#2980b9}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toggle{position:relative;display:inline-block;width:36px;height:19px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:19px;transition:.3s}
+.slider:before{position:absolute;content:"";height:13px;width:13px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:#27ae60}
+.toggle input:checked+.slider:before{transform:translateX(17px)}
+@media(max-width:768px){.sidebar{width:200px}.main{margin-left:200px}.form-row{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<div class="sidebar">
+  <div class="sidebar-logo"><i class="fas fa-utensils"></i><span>KochaEats Admin</span></div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+    <div class="nav-item" data-section="orders"><i class="fas fa-shopping-bag"></i> Orders <span class="nav-badge" id="active-badge">0</span></div>
+    <div class="nav-item" data-section="users"><i class="fas fa-users"></i> Users</div>
+    <div class="nav-item" data-section="riders"><i class="fas fa-motorcycle"></i> Riders</div>
+    <div class="nav-item" data-section="restaurants"><i class="fas fa-store"></i> Restaurants</div>
+    <div class="nav-item" data-section="menu"><i class="fas fa-utensils"></i> Menu Items</div>
+    <div class="nav-item" data-section="payments"><i class="fas fa-credit-card"></i> Payments</div>
+    <div class="nav-item" data-section="transactions"><i class="fas fa-exchange-alt"></i> Transactions</div>
+    <div class="nav-item" data-section="refunds"><i class="fas fa-undo"></i> Refunds</div>
+    <div class="nav-item" data-section="reviews"><i class="fas fa-star"></i> Reviews</div>
+    <div class="nav-item" data-section="reports"><i class="fas fa-chart-bar"></i> Reports</div>
+    <div class="nav-item" data-section="disputes"><i class="fas fa-exclamation-triangle"></i> Disputes</div>
+    <div class="nav-item" data-section="payconfig"><i class="fas fa-sliders-h"></i> Pay Config</div>
+  </nav>
+  <div class="sidebar-footer"><button class="logout-btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
+</div>
+<div class="main">
+  <div class="topbar"><h1 id="page-title">Dashboard</h1><div class="admin-badge"><i class="fas fa-shield-alt"></i><span id="admin-name">Admin</span></div></div>
+  <div class="content">
+    <div id="section-dashboard" class="section active">
+      <div class="stats-grid" id="stats-grid"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      <div class="card"><div class="card-header"><h2><i class="fas fa-clock"></i> Recent Orders</h2></div><div class="card-body" id="recent-orders-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div></div>
+    </div>
+    <div id="section-orders" class="section">
+      <div class="card">
+        <div class="filter-bar">
+          <select id="f-ord-status"><option value="">All Statuses</option><option>pending</option><option>confirmed</option><option>preparing</option><option>ready</option><option>out_for_delivery</option><option>delivered</option><option>cancelled</option></select>
+          <select id="f-pay-status"><option value="">All Payments</option><option>pending</option><option>awaiting_payment</option><option>paid</option><option>failed</option></select>
+          <input type="date" id="f-from"><input type="date" id="f-to">
+          <input type="text" id="f-search" placeholder="Search...">
+          <button class="btn btn-primary" onclick="loadOrders()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="orders-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-users" class="section">
+      <div class="card">
+        <div class="filter-bar">
+          <select id="f-user-role"><option value="">All Roles</option><option>customer</option><option>rider</option><option>admin</option></select>
+          <select id="f-user-status"><option value="">All Status</option><option>active</option><option>suspended</option></select>
+          <input type="text" id="f-user-search" placeholder="Search name/email...">
+          <button class="btn btn-primary" onclick="loadUsers()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="users-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-riders" class="section">
+      <div class="card"><div class="card-header"><h2><i class="fas fa-motorcycle"></i> All Riders</h2></div><div class="card-body" id="riders-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div></div>
+    </div>
+    <div id="section-restaurants" class="section">
+      <div class="add-form">
+        <h3><i class="fas fa-plus-circle"></i> Add New Restaurant</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Name *</label><input id="rn-name" placeholder="Restaurant name"></div>
+          <div class="form-group"><label>Cuisine Type</label><input id="rn-cuisine" placeholder="e.g. Ethiopian"></div>
+          <div class="form-group"><label>Address</label><input id="rn-address" placeholder="Address"></div>
+          <div class="form-group"><label>Phone</label><input id="rn-phone" placeholder="Phone"></div>
+        </div>
+        <div class="form-group"><label>Description</label><textarea id="rn-desc" rows="2" placeholder="Short description"></textarea></div>
+        <div id="rest-msg"></div>
+        <button class="btn btn-orange" onclick="addRestaurant()"><i class="fas fa-plus"></i> Add Restaurant</button>
+      </div>
+      <div class="card"><div class="card-header"><h2><i class="fas fa-store"></i> All Restaurants</h2></div><div class="card-body" id="restaurants-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div></div>
+    </div>
+    <div id="section-menu" class="section">
+      <div class="add-form">
+        <h3><i class="fas fa-plus-circle"></i> Add Menu Item</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Restaurant *</label><select id="mn-rest"><option value="">Select...</option></select></div>
+          <div class="form-group"><label>Category</label><input id="mn-cat" placeholder="e.g. Breakfast"></div>
+          <div class="form-group"><label>Item Name *</label><input id="mn-name" placeholder="Item name"></div>
+          <div class="form-group"><label>Price (ETB) *</label><input id="mn-price" type="number" placeholder="0.00"></div>
+        </div>
+        <div class="form-group"><label>Description</label><textarea id="mn-desc" rows="2" placeholder="Description"></textarea></div>
+        <div class="form-group"><label>Image URL</label><input id="mn-image" placeholder="https://..."></div>
+        <div id="menu-msg"></div>
+        <button class="btn btn-orange" onclick="addMenuItem()"><i class="fas fa-plus"></i> Add Item</button>
+      </div>
+      <div class="card">
+        <div class="filter-bar"><select id="f-menu-rest" onchange="loadMenuItems()"><option value="">All Restaurants</option></select></div>
+        <div class="card-body" id="menu-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-payments" class="section">
+      <div class="card">
+        <div class="filter-bar">
+          <select id="f-pay-s"><option value="">All Status</option><option>pending</option><option>processing</option><option>completed</option><option>failed</option><option>refunded</option><option>cancelled</option></select>
+          <select id="f-pay-m"><option value="">All Methods</option><option>cash</option><option>telebirr</option><option>cbebirr</option><option>amole</option><option>card</option><option>wallet</option><option>bank_transfer</option></select>
+          <input type="date" id="f-pay-from"><input type="date" id="f-pay-to">
+          <input type="text" id="f-pay-search" placeholder="Search ref/customer/tx...">
+          <button class="btn btn-primary" onclick="loadPayments()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="payments-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="section-transactions" class="section">
+      <div class="card">
+        <div class="filter-bar">
+          <select id="f-txn-type"><option value="">All Types</option><option>payment</option><option>refund</option><option>topup</option><option>withdrawal</option><option>cashback</option><option>fee</option></select>
+          <select id="f-txn-status"><option value="">All Status</option><option>pending</option><option>completed</option><option>failed</option><option>reversed</option></select>
+          <input type="date" id="f-txn-from"><input type="date" id="f-txn-to">
+          <input type="text" id="f-txn-search" placeholder="Search ref/user/gateway...">
+          <button class="btn btn-primary" onclick="loadTransactions()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="transactions-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- REFUNDS -->
+    <div id="section-refunds" class="section">
+      <div class="add-form">
+        <h3><i class="fas fa-plus-circle"></i> Initiate Refund</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Order ID *</label><input id="rf-order-id" placeholder="e.g. ORD-1234567890"></div>
+          <div class="form-group"><label>Refund Method</label>
+            <select id="rf-method" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
+              <option value="original">Back to Original Method</option>
+              <option value="wallet">Store Wallet Credit</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Reason Type</label>
+            <select id="rf-reason-type" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
+              <option value="order_cancelled">Order Cancelled</option>
+              <option value="payment_error">Payment Error</option>
+              <option value="customer_complaint">Customer Complaint</option>
+              <option value="duplicate">Duplicate Payment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Reason Detail *</label><input id="rf-reason" placeholder="Describe the reason..."></div>
+        </div>
+        <div id="rf-msg"></div>
+        <button class="btn btn-danger" onclick="initiateRefund()"><i class="fas fa-undo"></i> Initiate Refund</button>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <select id="f-rfd-status"><option value="">All Status</option><option>pending</option><option>processing</option><option>completed</option><option>failed</option></select>
+          <select id="f-rfd-reason"><option value="">All Reasons</option><option>order_cancelled</option><option>payment_error</option><option>customer_complaint</option><option>duplicate</option><option>other</option></select>
+          <input type="date" id="f-rfd-from"><input type="date" id="f-rfd-to">
+          <button class="btn btn-primary" onclick="loadRefunds()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="refunds-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+    <div id="section-reviews" class="section">
+      <div class="card"><div class="card-header"><h2><i class="fas fa-star"></i> All Reviews</h2></div><div class="card-body" id="reviews-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div></div>
+    </div>
+    <div id="section-reports" class="section">
+      <div class="add-form">
+        <h3><i class="fas fa-chart-bar"></i> Revenue Report</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Period</label><select id="rp-period"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+          <div class="form-group"><label>From</label><input type="date" id="rp-from"></div>
+          <div class="form-group"><label>To</label><input type="date" id="rp-to"></div>
+        </div>
+        <button class="btn btn-orange" onclick="loadReport()"><i class="fas fa-chart-line"></i> Generate Report</button>
+      </div>
+      <div id="report-summary" class="stats-grid" style="display:none;margin-bottom:16px"></div>
+      <div class="card"><div class="card-header"><h2>Report Results</h2></div><div class="card-body" id="report-wrap"><div class="empty-state"><i class="fas fa-chart-bar"></i>Select period and generate</div></div></div>
+    </div>
+
+    <!-- DISPUTES -->
+    <div id="section-disputes" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-exclamation-triangle"></i> Disputes &amp; Failed Orders</h2></div>
+        <div class="card-body" id="disputes-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- PAYMENT CONFIG -->
+    <div id="section-payconfig" class="section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-sliders-h"></i> Payment Method Configuration</h2></div>
+        <div class="card-body" id="payconfig-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="edit-rest-modal">
+  <div class="modal"><h3><i class="fas fa-edit"></i> Edit Restaurant</h3>
+    <input type="hidden" id="er-id">
+    <div class="form-group"><label>Name</label><input id="er-name"></div>
+    <div class="form-group"><label>Cuisine Type</label><input id="er-cuisine"></div>
+    <div class="form-group"><label>Address</label><input id="er-address"></div>
+    <div class="form-group"><label>Phone</label><input id="er-phone"></div>
+    <div class="form-group"><label>Description</label><textarea id="er-desc" rows="2"></textarea></div>
+    <div class="form-group"><label>Status</label><select id="er-status"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal('edit-rest-modal')">Cancel</button><button class="btn btn-orange" onclick="saveRestaurant()"><i class="fas fa-save"></i> Save</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="edit-menu-modal">
+  <div class="modal"><h3><i class="fas fa-edit"></i> Edit Menu Item</h3>
+    <input type="hidden" id="em-id">
+    <div class="form-group"><label>Name</label><input id="em-name"></div>
+    <div class="form-group"><label>Price (ETB)</label><input id="em-price" type="number"></div>
+    <div class="form-group"><label>Category</label><input id="em-cat"></div>
+    <div class="form-group"><label>Description</label><textarea id="em-desc" rows="2"></textarea></div>
+    <div class="form-group"><label>Image URL</label><input id="em-image"></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal('edit-menu-modal')">Cancel</button><button class="btn btn-orange" onclick="saveMenuItem()"><i class="fas fa-save"></i> Save</button></div>
+  </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const API='http://localhost:3000';
+const token=localStorage.getItem('kochaToken');
+const user=JSON.parse(localStorage.getItem('kochaUser')||'{}');
+if(!token||user.role!=='admin'){window.location.href='kochaEats.html';}
+document.getElementById('admin-name').textContent=user.name||'Admin';
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+
+function toast(msg,type='success'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast toast-'+type;
+  const ic=type==='success'?'check-circle':type==='error'?'exclamation-circle':'info-circle';
+  t.innerHTML='<i class="fas fa-'+ic+'"></i> '+msg;
+  c.appendChild(t);setTimeout(()=>t.remove(),3500);
+}
+function badge(val){const v=(val||'').toLowerCase().replace(/ /g,'_');return '<span class="badge b-'+v+'">'+(val||'-')+'</span>';}
+function stars(n){let s='';for(let i=1;i<=5;i++)s+='<i class="fas fa-star" style="color:'+(i<=n?'#ff6b35':'#ddd')+'"></i>';return s;}
+function fmt(n){return 'ETB '+parseFloat(n||0).toFixed(2);}
+function fmtDate(d){return d?new Date(d).toLocaleDateString():'-';}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id){document.getElementById(id).classList.add('open');}
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>showSection(el.dataset.section));
+});
+document.getElementById('logout-btn').addEventListener('click',()=>{
+  localStorage.removeItem('kochaToken');localStorage.removeItem('kochaUser');
+  window.location.href='kochaEats.html';
+});
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  document.querySelector('[data-section="'+name+'"]').classList.add('active');
+  const titles={dashboard:'Dashboard',orders:'Orders',users:'Users',riders:'Riders',
+    restaurants:'Restaurants',menu:'Menu Items',payments:'Payments',
+    transactions:'Transactions Ledger',refunds:'Refunds',
+    reviews:'Reviews',reports:'Reports',
+    disputes:'Disputes & Failed Orders',payconfig:'Payment Configuration'};
+  document.getElementById('page-title').textContent=titles[name]||name;
+  const loaders={orders:loadOrders,users:loadUsers,riders:loadRiders,
+    restaurants:loadRestaurants,menu:()=>{loadRestaurantDropdowns();loadMenuItems();},
+    payments:loadPayments,transactions:loadTransactions,refunds:loadRefunds,
+    reviews:loadReviews,disputes:loadDisputes,payconfig:loadPayConfig};
+  if(loaders[name])loaders[name]();
+}
+
+async function api(url,opts={}){
+  const r=await fetch(API+url,{headers:H(),...opts});
+  return r.json();
+}
+
+// STATS
+async function loadStats(){
+  try{
+    const d=await api('/api/admin/stats');
+    if(!d.success)throw new Error(d.message);
+    const s=d.data;
+    document.getElementById('active-badge').textContent=s.active_orders||0;
+    document.getElementById('stats-grid').innerHTML=`
+      <div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-shopping-bag"></i></div><div class="stat-info"><h3>${s.total_orders||0}</h3><p>Total Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-blue"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>${s.active_orders||0}</h3><p>Active Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-teal"><i class="fas fa-calendar-day"></i></div><div class="stat-info"><h3>${s.today_orders||0}</h3><p>Today Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-users"></i></div><div class="stat-info"><h3>${s.total_customers||0}</h3><p>Customers</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-purple"><i class="fas fa-motorcycle"></i></div><div class="stat-info"><h3>${s.total_riders||0}</h3><p>Riders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-yellow"><i class="fas fa-store"></i></div><div class="stat-info"><h3>${s.total_restaurants||0}</h3><p>Restaurants</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB ${parseFloat(s.total_revenue||0).toFixed(0)}</h3><p>Total Revenue</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-teal"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>ETB ${parseFloat(s.today_revenue||0).toFixed(0)}</h3><p>Today Revenue</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-red"><i class="fas fa-exclamation-circle"></i></div><div class="stat-info"><h3>${s.pending_payments||0}</h3><p>Pending Payments</p></div></div>`;
+  }catch(e){document.getElementById('stats-grid').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function loadRecentOrders(){
+  try{
+    const d=await api('/api/admin/orders');
+    const rows=(d.data||[]).slice(0,10);
+    if(!rows.length){document.getElementById('recent-orders-wrap').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i>No orders yet</div>';return;}
+    document.getElementById('recent-orders-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Payment</th><th>Date</th></tr></thead><tbody>'+
+      rows.map(o=>`<tr><td>#${o.id}</td><td>${o.customer_name||o.user_name||'-'}</td><td>${fmt(o.total)}</td><td>${badge(o.order_status)}</td><td>${badge(o.payment_status)}</td><td>${fmtDate(o.created_at)}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){document.getElementById('recent-orders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+</script>
+
+<script>
+// ORDERS
+async function loadOrders(){
+  document.getElementById('orders-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const status=document.getElementById('f-ord-status').value;
+  const pay=document.getElementById('f-pay-status').value;
+  const from=document.getElementById('f-from').value;
+  const to=document.getElementById('f-to').value;
+  const search=document.getElementById('f-search').value;
+  let url='/api/admin/orders?';
+  if(status)url+='status='+status+'&';
+  if(pay)url+='payment_status='+pay+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to+'&';
+  if(search)url+='search='+encodeURIComponent(search);
+  try{
+    const [od,rd]=await Promise.all([api(url),api('/api/admin/users?role=rider')]);
+    const orders=od.data||[];
+    const riders=(rd.data||[]).filter(r=>r.role==='rider'&&r.status==='active');
+    if(!orders.length){document.getElementById('orders-wrap').innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i>No orders found</div>';return;}
+    const rOpts=riders.map(r=>'<option value="'+r.id+'">'+r.name+'</option>').join('');
+    document.getElementById('orders-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Customer</th><th>Restaurant</th><th>Total</th><th>Status</th><th>Payment</th><th>Rider</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      orders.map(o=>'<tr>'+
+        '<td>#'+o.id+'</td>'+
+        '<td>'+(o.customer_name||o.user_name||'-')+'</td>'+
+        '<td>'+(o.restaurant_name||'-')+'</td>'+
+        '<td>'+fmt(o.total)+'</td>'+
+        '<td>'+badge(o.order_status)+'</td>'+
+        '<td>'+badge(o.payment_status)+'</td>'+
+        '<td>'+(o.rider_name||'<span style="color:#aaa">Unassigned</span>')+'</td>'+
+        '<td>'+fmtDate(o.created_at)+'</td>'+
+        '<td><div class="action-group">'+
+          '<select class="inline-select" onchange="updateOrderStatus(\''+o.id+'\',this.value);this.value=\'\'">'+
+            '<option value="">Status...</option>'+
+            '<option>pending</option><option>confirmed</option><option>preparing</option>'+
+            '<option>ready_for_pickup</option><option>assigned_to_rider</option><option>picked_up</option>'+
+            '<option>out_for_delivery</option><option>delivered</option><option>cancelled</option><option>rejected</option><option>failed_delivery</option>'+
+          '</select>'+
+          '<select class="inline-select" onchange="updatePayStatus(\''+o.id+'\',this.value);this.value=\'\'">'+
+            '<option value="">Payment...</option>'+
+            '<option>pending</option><option>awaiting_payment</option><option>paid</option><option>failed</option>'+
+          '</select>'+
+          '<select class="inline-select" onchange="assignRider(\''+o.id+'\',this.value);this.value=\'\'">'+
+            '<option value="">Assign rider...</option>'+rOpts+
+          '</select>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('orders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function updateOrderStatus(id,status){
+  if(!status)return;
+  try{const d=await api('/api/admin/orders/'+id+'/status',{method:'PATCH',body:JSON.stringify({order_status:status})});
+    toast(d.message||'Updated',d.success?'success':'error');if(d.success)loadOrders();}
+  catch(e){toast(e.message,'error');}
+}
+async function updatePayStatus(id,status){
+  if(!status)return;
+  try{const d=await api('/api/admin/orders/'+id+'/payment',{method:'PATCH',body:JSON.stringify({payment_status:status})});
+    toast(d.message||'Updated',d.success?'success':'error');if(d.success)loadOrders();}
+  catch(e){toast(e.message,'error');}
+}
+async function assignRider(orderId,riderId){
+  if(!riderId)return;
+  try{const d=await api('/api/admin/orders/'+orderId+'/assign-rider',{method:'PATCH',body:JSON.stringify({rider_id:riderId})});
+    toast(d.message||'Assigned',d.success?'success':'error');if(d.success)loadOrders();}
+  catch(e){toast(e.message,'error');}
+}
+
+// USERS
+async function loadUsers(){
+  document.getElementById('users-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const role=document.getElementById('f-user-role').value;
+  const status=document.getElementById('f-user-status').value;
+  const search=document.getElementById('f-user-search').value;
+  let url='/api/admin/users?';
+  if(role)url+='role='+role+'&';
+  if(status)url+='status='+status+'&';
+  if(search)url+='search='+encodeURIComponent(search);
+  try{
+    const d=await api(url);
+    const users=d.data||[];
+    if(!users.length){document.getElementById('users-wrap').innerHTML='<div class="empty-state"><i class="fas fa-users"></i>No users found</div>';return;}
+    document.getElementById('users-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead><tbody>'+
+      users.map(u=>'<tr>'+
+        '<td>#'+u.id+'</td><td>'+(u.name||'-')+'</td><td>'+(u.email||'-')+'</td><td>'+(u.phone||'-')+'</td>'+
+        '<td>'+badge(u.role)+'</td><td>'+badge(u.status)+'</td><td>'+fmtDate(u.created_at)+'</td>'+
+        '<td><div class="action-group">'+
+          (u.status==='suspended'
+            ?'<button class="btn btn-success btn-sm" onclick="setUserStatus('+u.id+',\'active\')"><i class="fas fa-check"></i> Activate</button>'
+            :'<button class="btn btn-danger btn-sm" onclick="setUserStatus('+u.id+',\'suspended\')"><i class="fas fa-ban"></i> Suspend</button>')+
+          '<button class="btn btn-warning btn-sm" onclick="adminResetPw('+u.id+',\''+u.name+'\')"><i class="fas fa-key"></i> Reset PW</button>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('users-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+async function setUserStatus(id,status){
+  if(!confirm('Set user status to '+status+'?'))return;
+  try{const d=await api('/api/admin/users/'+id+'/status',{method:'PATCH',body:JSON.stringify({status})});
+    toast(d.message||'Updated',d.success?'success':'error');if(d.success)loadUsers();}
+  catch(e){toast(e.message,'error');}
+}
+
+async function adminResetPw(id, name){
+  if(!confirm('Send password reset link for '+name+'?'))return;
+  try{
+    const d=await api('/api/admin/users/'+id+'/reset-password',{method:'POST'});
+    if(!d.success)throw new Error(d.message);
+    toast('Reset link generated for '+name,'success');
+    // Show token in a modal-like alert for dev mode
+    if(d.dev_token){
+      const msg='Reset token (dev mode):\n'+d.dev_token+'\n\nReset URL:\n'+d.dev_reset_url;
+      alert(msg);
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+// RIDERS
+async function loadRiders(){
+  document.getElementById('riders-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/admin/riders');
+    const riders=d.data||[];
+    if(!riders.length){document.getElementById('riders-wrap').innerHTML='<div class="empty-state"><i class="fas fa-motorcycle"></i>No riders found</div>';return;}
+    document.getElementById('riders-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Vehicle</th><th>Approval</th><th>Deliveries</th><th>Actions</th></tr></thead><tbody>'+
+      riders.map(r=>'<tr style="'+(r.approval_status==='pending'?'background:#fffde7':'')+'">' +
+        '<td>#'+r.id+'</td><td>'+(r.name||'-')+'</td><td>'+(r.email||'-')+'</td><td>'+(r.phone||'-')+'</td>'+
+        '<td>'+(r.vehicle_type||'-')+(r.vehicle_number?' ('+r.vehicle_number+')':'')+'</td>'+
+        '<td>'+badge(r.approval_status)+'</td><td>'+(r.total_deliveries||0)+'</td>'+
+        '<td><div class="action-group">'+
+          (r.approval_status!=='approved'?'<button class="btn btn-success btn-sm" onclick="approveRider('+r.id+')"><i class="fas fa-check"></i> Approve</button>':'')+
+          (r.approval_status!=='rejected'?'<button class="btn btn-danger btn-sm" onclick="rejectRider('+r.id+')"><i class="fas fa-times"></i> Reject</button>':'')+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('riders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+async function approveRider(id){
+  try{const d=await api('/api/admin/riders/'+id+'/approve',{method:'PATCH'});
+    toast(d.message||'Approved',d.success?'success':'error');if(d.success)loadRiders();}
+  catch(e){toast(e.message,'error');}
+}
+async function rejectRider(id){
+  if(!confirm('Reject this rider?'))return;
+  try{const d=await api('/api/admin/riders/'+id+'/reject',{method:'PATCH'});
+    toast(d.message||'Rejected',d.success?'success':'error');if(d.success)loadRiders();}
+  catch(e){toast(e.message,'error');}
+}
+</script>
+
+<script>
+// RESTAURANTS
+let allRestaurants=[];
+async function loadRestaurants(){
+  document.getElementById('restaurants-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/admin/restaurants');
+    allRestaurants=d.data||[];
+    if(!allRestaurants.length){document.getElementById('restaurants-wrap').innerHTML='<div class="empty-state"><i class="fas fa-store"></i>No restaurants yet</div>';return;}
+    document.getElementById('restaurants-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Name</th><th>Cuisine</th><th>Address</th><th>Phone</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+      allRestaurants.map(r=>'<tr>'+
+        '<td>#'+r.id+'</td><td><strong>'+(r.name||'-')+'</strong></td><td>'+(r.cuisine_type||'-')+'</td>'+
+        '<td>'+(r.address||'-')+'</td><td>'+(r.phone||'-')+'</td>'+
+        '<td><span style="color:#ff6b35"><i class="fas fa-star"></i> '+parseFloat(r.rating||0).toFixed(1)+'</span></td>'+
+        '<td>'+badge(r.status)+'</td>'+
+        '<td><div class="action-group">'+
+          '<button class="btn btn-warning btn-sm" onclick="editRestaurant('+r.id+')"><i class="fas fa-edit"></i> Edit</button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteRestaurant('+r.id+')"><i class="fas fa-trash"></i></button>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('restaurants-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+async function addRestaurant(){
+  const name=document.getElementById('rn-name').value.trim();
+  const cuisine=document.getElementById('rn-cuisine').value.trim();
+  const address=document.getElementById('rn-address').value.trim();
+  const phone=document.getElementById('rn-phone').value.trim();
+  const desc=document.getElementById('rn-desc').value.trim();
+  const msg=document.getElementById('rest-msg');
+  if(!name){msg.innerHTML='<div class="error-msg">Name is required.</div>';return;}
+  try{
+    const d=await api('/api/admin/restaurants',{method:'POST',body:JSON.stringify({name,cuisine_type:cuisine,address,phone,description:desc})});
+    if(!d.success)throw new Error(d.message);
+    msg.innerHTML='<div style="background:#e8f5e9;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px"><i class="fas fa-check-circle"></i> Restaurant added!</div>';
+    ['rn-name','rn-cuisine','rn-address','rn-phone','rn-desc'].forEach(id=>document.getElementById(id).value='');
+    loadRestaurants();setTimeout(()=>msg.innerHTML='',3000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+function editRestaurant(id){
+  const r=allRestaurants.find(x=>x.id===id);if(!r)return;
+  document.getElementById('er-id').value=r.id;
+  document.getElementById('er-name').value=r.name||'';
+  document.getElementById('er-cuisine').value=r.cuisine_type||'';
+  document.getElementById('er-address').value=r.address||'';
+  document.getElementById('er-phone').value=r.phone||'';
+  document.getElementById('er-desc').value=r.description||'';
+  document.getElementById('er-status').value=r.status||'active';
+  openModal('edit-rest-modal');
+}
+async function saveRestaurant(){
+  const id=document.getElementById('er-id').value;
+  const body={name:document.getElementById('er-name').value,cuisine_type:document.getElementById('er-cuisine').value,
+    address:document.getElementById('er-address').value,phone:document.getElementById('er-phone').value,
+    description:document.getElementById('er-desc').value,status:document.getElementById('er-status').value};
+  try{const d=await api('/api/admin/restaurants/'+id,{method:'PATCH',body:JSON.stringify(body)});
+    toast(d.message||'Updated',d.success?'success':'error');if(d.success){closeModal('edit-rest-modal');loadRestaurants();}}
+  catch(e){toast(e.message,'error');}
+}
+async function deleteRestaurant(id){
+  if(!confirm('Delete this restaurant? This cannot be undone.'))return;
+  try{const d=await api('/api/admin/restaurants/'+id,{method:'DELETE'});
+    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadRestaurants();}
+  catch(e){toast(e.message,'error');}
+}
+
+// MENU ITEMS
+let menuItemsCache={};
+async function loadRestaurantDropdowns(){
+  try{
+    const d=await api('/api/admin/restaurants');
+    const opts=(d.data||[]).map(r=>'<option value="'+r.id+'">'+r.name+'</option>').join('');
+    document.getElementById('mn-rest').innerHTML='<option value="">Select restaurant...</option>'+opts;
+    document.getElementById('f-menu-rest').innerHTML='<option value="">All Restaurants</option>'+opts;
+  }catch(e){}
+}
+async function loadMenuItems(){
+  document.getElementById('menu-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const restId=document.getElementById('f-menu-rest').value;
+  let url='/api/admin/menu-items';
+  if(restId)url+='?restaurant_id='+restId;
+  try{
+    const d=await api(url);
+    const items=d.data||[];
+    menuItemsCache={};
+    items.forEach(m=>{menuItemsCache[m.id]=m;});
+    if(!items.length){document.getElementById('menu-wrap').innerHTML='<div class="empty-state"><i class="fas fa-utensils"></i>No menu items found</div>';return;}
+    document.getElementById('menu-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Restaurant</th><th>Name</th><th>Category</th><th>Price</th><th>Available</th><th>Actions</th></tr></thead><tbody>'+
+      items.map(m=>'<tr>'+
+        '<td>#'+m.id+'</td><td>'+(m.restaurant_name||'-')+'</td><td>'+m.name+'</td>'+
+        '<td>'+(m.category||'-')+'</td><td>'+fmt(m.price)+'</td>'+
+        '<td><label class="toggle"><input type="checkbox" '+(m.available?'checked':'')+' onchange="toggleMenuItem('+m.id+')"><span class="slider"></span></label></td>'+
+        '<td><div class="action-group">'+
+          '<button class="btn btn-warning btn-sm" onclick="editMenuItemById('+m.id+')"><i class="fas fa-edit"></i></button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteMenuItem('+m.id+')"><i class="fas fa-trash"></i></button>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('menu-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+function editMenuItemById(id){
+  const m=menuItemsCache[id];
+  if(!m)return;
+  document.getElementById('em-id').value=m.id;
+  document.getElementById('em-name').value=m.name||'';
+  document.getElementById('em-price').value=m.price||'';
+  document.getElementById('em-cat').value=m.category||'';
+  document.getElementById('em-desc').value=m.description||'';
+  document.getElementById('em-image').value=m.image||'';
+  openModal('edit-menu-modal');
+}
+async function addMenuItem(){
+  const restId=document.getElementById('mn-rest').value;
+  const name=document.getElementById('mn-name').value.trim();
+  const price=document.getElementById('mn-price').value;
+  const cat=document.getElementById('mn-cat').value.trim();
+  const desc=document.getElementById('mn-desc').value.trim();
+  const image=document.getElementById('mn-image').value.trim();
+  const msg=document.getElementById('menu-msg');
+  if(!restId||!name||!price){msg.innerHTML='<div class="error-msg">Restaurant, name and price are required.</div>';return;}
+  try{
+    const d=await api('/api/admin/menu-items',{method:'POST',body:JSON.stringify({restaurant_id:restId,name,price,category:cat,description:desc,image})});
+    if(!d.success)throw new Error(d.message);
+    msg.innerHTML='<div style="background:#e8f5e9;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px"><i class="fas fa-check-circle"></i> Item added!</div>';
+    ['mn-name','mn-price','mn-cat','mn-desc','mn-image'].forEach(id=>document.getElementById(id).value='');
+    loadMenuItems();setTimeout(()=>msg.innerHTML='',3000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+// editMenuItemById is defined above in loadMenuItems section
+async function saveMenuItem(){
+  const id=document.getElementById('em-id').value;
+  const body={name:document.getElementById('em-name').value,price:document.getElementById('em-price').value,
+    category:document.getElementById('em-cat').value,description:document.getElementById('em-desc').value,
+    image:document.getElementById('em-image').value};
+  try{const d=await api('/api/admin/menu-items/'+id,{method:'PATCH',body:JSON.stringify(body)});
+    toast(d.message||'Updated',d.success?'success':'error');if(d.success){closeModal('edit-menu-modal');loadMenuItems();}}
+  catch(e){toast(e.message,'error');}
+}
+async function toggleMenuItem(id){
+  try{const d=await api('/api/admin/menu-items/'+id+'/toggle',{method:'PATCH'});
+    if(!d.success)toast(d.message,'error');}
+  catch(e){toast(e.message,'error');}
+}
+async function deleteMenuItem(id){
+  if(!confirm('Delete this menu item?'))return;
+  try{const d=await api('/api/admin/menu-items/'+id,{method:'DELETE'});
+    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadMenuItems();}
+  catch(e){toast(e.message,'error');}
+}
+
+// PAYMENTS
+async function loadPayments(){
+  document.getElementById('payments-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const status=document.getElementById('f-pay-s').value;
+  const method=document.getElementById('f-pay-m').value;
+  const from=document.getElementById('f-pay-from').value;
+  const to=document.getElementById('f-pay-to').value;
+  const search=document.getElementById('f-pay-search')?document.getElementById('f-pay-search').value:'';
+  let url='/api/admin/payments?';
+  if(status)url+='status='+status+'&';
+  if(method)url+='method='+method+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to+'&';
+  if(search)url+='search='+encodeURIComponent(search);
+  try{
+    const d=await api(url);
+    const payments=d.data||[];
+    if(!payments.length){document.getElementById('payments-wrap').innerHTML='<div class="empty-state"><i class="fas fa-credit-card"></i>No payments found</div>';return;}
+    const totalRev=payments.filter(p=>p.status==='completed').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+    const summary='<div style="display:flex;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid #f0f0f0">'+
+      '<div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-coins"></i> Revenue: <strong>ETB '+totalRev.toFixed(2)+'</strong></div>'+
+      '<div style="background:#e3f2fd;color:#1565c0;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-list"></i> Total: <strong>'+payments.length+'</strong></div>'+
+      '<div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-check-circle"></i> Completed: <strong>'+payments.filter(p=>p.status==='completed').length+'</strong></div>'+
+      '<div style="background:#ffebee;color:#c62828;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-times-circle"></i> Failed: <strong>'+payments.filter(p=>p.status==='failed').length+'</strong></div>'+
+      '</div>';
+    document.getElementById('payments-wrap').innerHTML=summary+'<table><thead><tr><th>Ref</th><th>Order</th><th>Customer</th><th>Amount</th><th>Method</th><th>Status</th><th>Tx ID</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      payments.map(p=>'<tr>'+
+        '<td style="font-size:.72rem">'+p.payment_ref+'</td>'+
+        '<td>#'+(p.order_id||'-')+'</td>'+
+        '<td>'+(p.customer_name||'-')+'</td>'+
+        '<td>'+fmt(p.amount)+'</td>'+
+        '<td>'+(p.method||'-')+'</td>'+
+        '<td>'+badge(p.status)+'</td>'+
+        '<td style="font-size:.72rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+(p.gateway_tx_id||'-')+'</td>'+
+        '<td>'+fmtDate(p.created_at)+'</td>'+
+        '<td>'+(p.status==='completed'?'<button class="btn btn-warning btn-sm" onclick="refundPayment('+p.id+')"><i class="fas fa-undo"></i> Refund</button>':'')+'</td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('payments-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// REVIEWS
+async function loadReviews(){
+  document.getElementById('reviews-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/admin/reviews');
+    const reviews=d.data||[];
+    if(!reviews.length){document.getElementById('reviews-wrap').innerHTML='<div class="empty-state"><i class="fas fa-star"></i>No reviews yet</div>';return;}
+    document.getElementById('reviews-wrap').innerHTML='<table><thead><tr><th>ID</th><th>Customer</th><th>Restaurant</th><th>Rating</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      reviews.map(r=>`<tr>
+        <td>#${r.id}</td><td>${r.customer_name||'-'}</td><td>${r.restaurant_name||'-'}</td>
+        <td>${stars(r.rating)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.comment||'-'}</td>
+        <td>${fmtDate(r.created_at)}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteReview(${r.id})"><i class="fas fa-trash"></i></button></td>
+      </tr>`).join('')+'</tbody></table>';
+  }catch(e){document.getElementById('reviews-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+async function refundPayment(id){
+  const reason=prompt('Refund reason (optional):');
+  if(reason===null)return;
+  try{const d=await api('/api/payments/'+id+'/refund',{method:'POST',body:JSON.stringify({reason})});
+    toast(d.message||'Refunded',d.success?'success':'error');if(d.success)loadPayments();}
+  catch(e){toast(e.message,'error');}
+}
+
+async function deleteReview(id){
+  if(!confirm('Delete this review?'))return;
+  try{const d=await api('/api/admin/reviews/'+id,{method:'DELETE'});
+    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadReviews();}
+  catch(e){toast(e.message,'error');}
+}
+
+// REPORTS
+async function loadReport(){
+  document.getElementById('report-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const period=document.getElementById('rp-period').value;
+  const from=document.getElementById('rp-from').value;
+  const to=document.getElementById('rp-to').value;
+  let url='/api/admin/revenue?period='+period;
+  if(from)url+='&from='+from;
+  if(to)url+='&to='+to;
+  try{
+    const d=await api(url);
+    const rows=d.data||[];
+    const summary=document.getElementById('report-summary');
+    summary.style.display='grid';
+    summary.innerHTML=`
+      <div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-shopping-bag"></i></div><div class="stat-info"><h3>${d.total_orders||0}</h3><p>Total Orders</p></div></div>
+      <div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB ${parseFloat(d.total_revenue||0).toFixed(2)}</h3><p>Total Revenue</p></div></div>`;
+    if(!rows.length){document.getElementById('report-wrap').innerHTML='<div class="empty-state"><i class="fas fa-chart-bar"></i>No data for selected period</div>';return;}
+    document.getElementById('report-wrap').innerHTML='<table><thead><tr><th>Period</th><th>Orders</th><th>Revenue (ETB)</th></tr></thead><tbody>'+
+      rows.map(r=>`<tr><td>${r.period}</td><td>${r.orders_count}</td><td>${parseFloat(r.revenue||0).toFixed(2)}</td></tr>`).join('')+
+      '</tbody></table>';
+  }catch(e){document.getElementById('report-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// INIT
+loadStats();
+loadRecentOrders();
+</script>
+
+<script>
+// DISPUTES
+async function loadDisputes(){
+  document.getElementById('disputes-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/admin/disputes');
+    const rows=d.data||[];
+    if(!rows.length){document.getElementById('disputes-wrap').innerHTML='<div class="empty-state"><i class="fas fa-check-circle"></i>No disputes found</div>';return;}
+    document.getElementById('disputes-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Customer</th><th>Rider</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      rows.map(o=>'<tr>'+
+        '<td>#'+o.id+'</td>'+
+        '<td>'+(o.customer_name||'-')+'<br><small style="color:#888">'+(o.customer_phone||'')+'</small></td>'+
+        '<td>'+(o.rider_name||'<span style="color:#aaa">None</span>')+'</td>'+
+        '<td>ETB '+parseFloat(o.total||0).toFixed(2)+'</td>'+
+        '<td>'+badge(o.order_status)+'</td>'+
+        '<td>'+badge(o.payment_status)+'</td>'+
+        '<td>'+fmtDate(o.updated_at||o.created_at)+'</td>'+
+        '<td><div class="action-group">'+
+          '<button class="btn btn-danger btn-sm" onclick="forceRefund(\''+o.id+'\')"><i class="fas fa-undo"></i> Refund</button>'+
+          '<button class="btn btn-warning btn-sm" onclick="updateOrderStatus(\''+o.id+'\',\'cancelled\')"><i class="fas fa-times"></i> Cancel</button>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('disputes-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function forceRefund(orderId){
+  const reason=prompt('Refund reason:','Customer complaint');
+  if(reason===null)return;
+  try{
+    const d=await api('/api/admin/orders/'+orderId+'/force-refund',{method:'POST',body:JSON.stringify({reason})});
+    toast(d.message||'Refunded',d.success?'success':'error');
+    if(d.success)loadDisputes();
+  }catch(e){toast(e.message,'error');}
+}
+
+// PAYMENT CONFIG
+async function loadPayConfig(){
+  document.getElementById('payconfig-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/payment-methods');
+    const methods=d.data||[];
+    if(!methods.length){document.getElementById('payconfig-wrap').innerHTML='<div class="empty-state">No payment methods configured</div>';return;}
+    document.getElementById('payconfig-wrap').innerHTML='<table><thead><tr><th>Method</th><th>Label</th><th>Min Amount</th><th>Max Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+      methods.map(m=>'<tr>'+
+        '<td><i class="fas '+m.icon+'" style="color:#ff6b35;margin-right:6px"></i>'+m.method+'</td>'+
+        '<td>'+m.label+'</td>'+
+        '<td>ETB '+parseFloat(m.min_amount||0).toFixed(0)+'</td>'+
+        '<td>ETB '+parseFloat(m.max_amount||0).toFixed(0)+'</td>'+
+        '<td>'+badge(m.enabled?'active':'inactive')+'</td>'+
+        '<td><div class="action-group">'+
+          '<button class="btn '+(m.enabled?'btn-danger':'btn-success')+' btn-sm" onclick="togglePayMethod(\''+m.method+'\')">'+
+            (m.enabled?'<i class="fas fa-ban"></i> Disable':'<i class="fas fa-check"></i> Enable')+
+          '</button>'+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('payconfig-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function togglePayMethod(method){
+  try{
+    const d=await api('/api/admin/payment-config/'+method+'/toggle',{method:'PATCH'});
+    toast(d.message||'Updated',d.success?'success':'error');
+    if(d.success)loadPayConfig();
+  }catch(e){toast(e.message,'error');}
+}
+
+// ENHANCED REPORTS
+async function loadReport(){
+  document.getElementById('report-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const period=document.getElementById('rp-period').value;
+  const from=document.getElementById('rp-from').value;
+  const to=document.getElementById('rp-to').value;
+  let url='/api/admin/reports/financial?period='+period;
+  if(from)url+='&from='+from;
+  if(to)url+='&to='+to;
+  try{
+    const d=await api(url);
+    const data=d.data||{};
+    const summary=document.getElementById('report-summary');
+    summary.style.display='grid';
+    summary.innerHTML=
+      '<div class="stat-card"><div class="stat-icon ic-orange"><i class="fas fa-shopping-bag"></i></div><div class="stat-info"><h3>'+(data.summary?.total_orders||0)+'</h3><p>Total Orders</p></div></div>'+
+      '<div class="stat-card"><div class="stat-icon ic-green"><i class="fas fa-coins"></i></div><div class="stat-info"><h3>ETB '+parseFloat(data.summary?.total_revenue||0).toFixed(0)+'</h3><p>Revenue</p></div></div>'+
+      '<div class="stat-card"><div class="stat-icon ic-red"><i class="fas fa-times-circle"></i></div><div class="stat-info"><h3>'+(data.failed_transactions||0)+'</h3><p>Failed Txns</p></div></div>'+
+      '<div class="stat-card"><div class="stat-icon ic-purple"><i class="fas fa-undo"></i></div><div class="stat-info"><h3>ETB '+parseFloat(data.refunds?.refund_amount||0).toFixed(0)+'</h3><p>Refunds</p></div></div>';
+
+    let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px">';
+    // Timeline table
+    html+='<div><h4 style="font-size:.85rem;font-weight:600;color:#1a237e;margin-bottom:10px">Revenue Timeline</h4>';
+    html+='<table><thead><tr><th>Period</th><th>Orders</th><th>Revenue</th><th>Delivery Fees</th></tr></thead><tbody>';
+    (data.timeline||[]).forEach(r=>{
+      html+='<tr><td>'+r.period+'</td><td>'+r.orders+'</td><td>ETB '+parseFloat(r.revenue||0).toFixed(2)+'</td><td>ETB '+parseFloat(r.delivery_fees||0).toFixed(2)+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    // By payment method
+    html+='<div><h4 style="font-size:.85rem;font-weight:600;color:#1a237e;margin-bottom:10px">By Payment Method</h4>';
+    html+='<table><thead><tr><th>Method</th><th>Orders</th><th>Revenue</th></tr></thead><tbody>';
+    (data.by_payment_method||[]).forEach(r=>{
+      html+='<tr><td>'+r.payment_method+'</td><td>'+r.count+'</td><td>ETB '+parseFloat(r.revenue||0).toFixed(2)+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    // By order status
+    html+='<div style="grid-column:span 2"><h4 style="font-size:.85rem;font-weight:600;color:#1a237e;margin-bottom:10px">Order Status Breakdown</h4>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    (data.by_order_status||[]).forEach(r=>{
+      html+='<div style="background:#f8f9ff;border-radius:8px;padding:8px 14px;font-size:.78rem"><strong>'+r.order_status+'</strong>: '+r.count+'</div>';
+    });
+    html+='</div></div></div>';
+    document.getElementById('report-wrap').innerHTML=html;
+  }catch(e){document.getElementById('report-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+</script>
+
+<script>
+// TRANSACTIONS
+async function loadTransactions(){
+  document.getElementById('transactions-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const type=document.getElementById('f-txn-type').value;
+  const status=document.getElementById('f-txn-status').value;
+  const from=document.getElementById('f-txn-from').value;
+  const to=document.getElementById('f-txn-to').value;
+  const search=document.getElementById('f-txn-search').value;
+  let url='/api/admin/transactions?';
+  if(type)url+='type='+type+'&';
+  if(status)url+='status='+status+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to+'&';
+  if(search)url+='search='+encodeURIComponent(search);
+  try{
+    const d=await api(url);
+    const txns=d.data||[];
+    const summary='<div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #f0f0f0">'+
+      '<div style="background:#e8f5e9;color:#2e7d32;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-arrow-down"></i> Inflow: <strong>ETB '+parseFloat(d.total_inflow||0).toFixed(2)+'</strong></div>'+
+      '<div style="background:#ffebee;color:#c62828;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-arrow-up"></i> Outflow: <strong>ETB '+parseFloat(d.total_outflow||0).toFixed(2)+'</strong></div>'+
+      '<div style="background:#e3f2fd;color:#1565c0;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-balance-scale"></i> Net: <strong>ETB '+parseFloat(d.net||0).toFixed(2)+'</strong></div>'+
+      '<div style="background:#f3e5f5;color:#6a1b9a;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-list"></i> Count: <strong>'+txns.length+'</strong></div>'+
+      '</div>';
+    if(!txns.length){document.getElementById('transactions-wrap').innerHTML=summary+'<div class="empty-state"><i class="fas fa-exchange-alt"></i>No transactions found</div>';return;}
+    document.getElementById('transactions-wrap').innerHTML=summary+
+      '<table><thead><tr><th>Ref</th><th>Type</th><th>Direction</th><th>User</th><th>Order</th><th>Amount</th><th>Fee</th><th>Net</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+      txns.map(t=>'<tr>'+
+        '<td style="font-size:.7rem">'+t.txn_ref+'</td>'+
+        '<td>'+badge(t.type)+'</td>'+
+        '<td><span style="font-size:.72rem;font-weight:600;color:'+(t.direction==='inflow'?'#27ae60':'#e74c3c')+'">'+
+          '<i class="fas fa-arrow-'+(t.direction==='inflow'?'down':'up')+'"></i> '+t.direction+'</span></td>'+
+        '<td>'+(t.user_name||'-')+'</td>'+
+        '<td>'+(t.order_id?'#'+t.order_id:'-')+'</td>'+
+        '<td style="font-weight:600">ETB '+parseFloat(t.amount||0).toFixed(2)+'</td>'+
+        '<td style="color:#e74c3c">'+(parseFloat(t.fee||0)>0?'ETB '+parseFloat(t.fee).toFixed(2):'-')+'</td>'+
+        '<td style="font-weight:600;color:'+(t.direction==='inflow'?'#27ae60':'#e74c3c')+'">ETB '+parseFloat(t.net_amount||0).toFixed(2)+'</td>'+
+        '<td>'+(t.method||'-')+'</td>'+
+        '<td>'+badge(t.status)+'</td>'+
+        '<td>'+fmtDate(t.created_at)+'</td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('transactions-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// REFUNDS
+async function loadRefunds(){
+  document.getElementById('refunds-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const status=document.getElementById('f-rfd-status').value;
+  const reason=document.getElementById('f-rfd-reason').value;
+  const from=document.getElementById('f-rfd-from').value;
+  const to=document.getElementById('f-rfd-to').value;
+  let url='/api/admin/refunds?';
+  if(status)url+='status='+status+'&';
+  if(reason)url+='reason='+reason+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to;
+  try{
+    const d=await api(url);
+    const refunds=d.data||[];
+    const totalRefunded=parseFloat(d.total_refunded||0).toFixed(2);
+    const summary='<div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #f0f0f0">'+
+      '<div style="background:#ffebee;color:#c62828;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-undo"></i> Total Refunded: <strong>ETB '+totalRefunded+'</strong></div>'+
+      '<div style="background:#f3e5f5;color:#6a1b9a;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-list"></i> Count: <strong>'+refunds.length+'</strong></div>'+
+      '<div style="background:#fff3e0;color:#e65100;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-clock"></i> Pending: <strong>'+refunds.filter(r=>r.status==='pending').length+'</strong></div>'+
+      '</div>';
+    if(!refunds.length){document.getElementById('refunds-wrap').innerHTML=summary+'<div class="empty-state"><i class="fas fa-undo"></i>No refunds found</div>';return;}
+    document.getElementById('refunds-wrap').innerHTML=summary+
+      '<table><thead><tr><th>Ref</th><th>Order</th><th>Customer</th><th>Amount</th><th>Method</th><th>Reason</th><th>Status</th><th>Initiated By</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+      refunds.map(r=>'<tr>'+
+        '<td style="font-size:.7rem">'+r.refund_ref+'</td>'+
+        '<td>#'+(r.order_id||'-')+'</td>'+
+        '<td>'+(r.customer_name||'-')+'</td>'+
+        '<td style="font-weight:600;color:#e74c3c">ETB '+parseFloat(r.amount||0).toFixed(2)+'</td>'+
+        '<td>'+(r.method||'-')+'</td>'+
+        '<td style="font-size:.75rem">'+(r.reason||'-').replace(/_/g,' ')+'</td>'+
+        '<td>'+badge(r.status)+'</td>'+
+        '<td style="font-size:.75rem">'+(r.initiated_by_name||r.initiated_role||'-')+'</td>'+
+        '<td>'+fmtDate(r.created_at)+'</td>'+
+        '<td><div class="action-group">'+
+          (r.status==='pending'?
+            '<button class="btn btn-success btn-sm" onclick="processRefund('+r.id+',\'completed\')"><i class="fas fa-check"></i> Complete</button>'+
+            '<button class="btn btn-danger btn-sm" onclick="processRefund('+r.id+',\'failed\')"><i class="fas fa-times"></i> Fail</button>':
+            '')+
+        '</div></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('refunds-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function processRefund(id, status){
+  const gateway_ref = status==='completed' ? prompt('Gateway reference (optional):','') : null;
+  if(gateway_ref===null && status==='completed') return;
+  try{
+    const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref})});
+    toast(d.message||'Updated',d.success?'success':'error');
+    if(d.success)loadRefunds();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function initiateRefund(){
+  const order_id=document.getElementById('rf-order-id').value.trim();
+  const reason=document.getElementById('rf-reason').value.trim();
+  const reason_type=document.getElementById('rf-reason-type').value;
+  const refund_method=document.getElementById('rf-method').value;
+  const msg=document.getElementById('rf-msg');
+  if(!order_id||!reason){msg.innerHTML='<div class="error-msg">Order ID and reason are required.</div>';return;}
+  try{
+    const d=await api('/api/admin/refunds',{method:'POST',body:JSON.stringify({order_id,reason,reason_type,refund_method})});
+    if(!d.success)throw new Error(d.message);
+    msg.innerHTML='<div style="background:#e8f5e9;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px"><i class="fas fa-check-circle"></i> Refund initiated! Ref: '+d.refund_ref+'</div>';
+    document.getElementById('rf-order-id').value='';
+    document.getElementById('rf-reason').value='';
+    loadRefunds();
+    setTimeout(()=>msg.innerHTML='',5000);
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// UPDATED PAYCONFIG — uses payment_methods table
+async function loadPayConfig(){
+  document.getElementById('payconfig-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  try{
+    const d=await api('/api/admin/payment-methods');
+    const methods=d.data||[];
+    if(!methods.length){document.getElementById('payconfig-wrap').innerHTML='<div class="empty-state">No payment methods configured</div>';return;}
+    document.getElementById('payconfig-wrap').innerHTML=
+      '<table><thead><tr><th>Method</th><th>Name</th><th>Type</th><th>Provider</th><th>Min</th><th>Max</th><th>Fee</th><th>Account</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+      methods.map(m=>'<tr>'+
+        '<td><i class="fas '+m.icon+'" style="color:#ff6b35;margin-right:6px"></i><strong>'+m.code+'</strong></td>'+
+        '<td>'+m.name+'</td>'+
+        '<td>'+badge(m.type)+'</td>'+
+        '<td style="font-size:.75rem">'+(m.provider||'-')+'</td>'+
+        '<td>ETB '+parseFloat(m.min_amount||0).toFixed(0)+'</td>'+
+        '<td>ETB '+parseFloat(m.max_amount||0).toFixed(0)+'</td>'+
+        '<td>'+(parseFloat(m.processing_fee||0)>0?m.processing_fee+(m.fee_type==='percent'?'%':' ETB'):'-')+'</td>'+
+        '<td style="font-size:.72rem">'+(m.account_number?m.account_number+'<br><small>'+m.account_name+'</small>':'-')+'</td>'+
+        '<td>'+badge(m.enabled?'active':'inactive')+'</td>'+
+        '<td><button class="btn '+(m.enabled?'btn-danger':'btn-success')+' btn-sm" onclick="togglePayMethod(\''+m.code+'\')">'+
+          (m.enabled?'<i class="fas fa-ban"></i> Disable':'<i class="fas fa-check"></i> Enable')+
+        '</button></td>'+
+      '</tr>').join('')+'</tbody></table>';
+  }catch(e){document.getElementById('payconfig-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function togglePayMethod(code){
+  try{
+    const d=await api('/api/admin/payment-methods/'+code+'/toggle',{method:'PATCH'});
+    toast(d.message||'Updated',d.success?'success':'error');
+    if(d.success)loadPayConfig();
+  }catch(e){toast(e.message,'error');}
+}
+</script>
+</body></html>

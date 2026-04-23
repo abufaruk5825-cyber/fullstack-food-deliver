@@ -12,13 +12,13 @@ db.connect(err => {
     if (err) { console.error('DB error:', err.message); process.exit(1); }
     console.log('Connected to kochaeats DB');
 
-    // Check existing admins
+    // Check existing admins 
     db.query('SELECT id, name, email, role, status FROM users WHERE role = "admin"', (e, rows) => {
         if (e) { console.error('Query error:', e.message); db.end(); return; }
         console.log('Existing admins:', rows.length);
         rows.forEach(r => console.log(' -', r.id, r.name, r.email, r.status));
 
-        // Force-create/update admin
+        // Force-create/update admins
         const email = 'admin@kochaeats.com';
         const password = 'Admin123!';
         bcrypt.hash(password, 10, (he, hash) => {
