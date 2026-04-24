@@ -1385,10 +1385,51 @@ app.post('/api/wallet/pay', authenticate, requireRole('customer'), (req, res) =>
 // ============================================================
 //  PAYMENT CONFIG
 // ============================================================
+//  PAYMENT CONFIG
+// ============================================================
 app.get('/api/payment-methods', (req, res) => {
     db.query('SELECT * FROM payment_config ORDER BY enabled DESC, method', (err, rows) => {
         if (err) return res.json({ success: false, message: 'DB error.' });
         res.json({ success: true, data: rows });
+    });
+});
+
+// Admin: full payment_methods table (rich metadata)
+app.get('/api/admin/payment-methods', authenticate, requireRole('admin'), (req, res) => {
+    db.query('SELECT * FROM payment_methods ORDER BY sort_order, code', (err, rows) => {
+        if (err) return res.json({ success: false, message: 'DB error.' });
+        res.json({ success: true, data: rows });
+    });
+});
+
+app.patch('/api/admin/payment-methods/:code/toggle', authenticate, requireRole('admin'), (req, res) => {
+    db.query('UPDATE payment_methods SET enabled=NOT enabled, updated_at=NOW() WHERE code=?', [req.params.code], (err, result) => {
+        if (err || !result.affectedRows) return res.json({ success: false, message: 'Update failed.' });
+        // Keep payment_config in sync
+        db.query('UPDATE payment_config SET enabled=NOT enabled WHERE method=?', [req.params.code], () => {});
+        res.json({ success: true, message: 'Payment method toggled.' });
+    });
+});
+
+app.patch('/api/admin/payment-methods/:code', authenticate, requireRole('admin'), (req, res) => {
+    const { name, enabled, min_amount, max_amount, processing_fee, fee_type, account_number, account_name, instructions, sort_order } = req.body;
+    const fields = [], vals = [];
+    if (name !== undefined)             { fields.push('name=?');             vals.push(name); }
+    if (enabled !== undefined)          { fields.push('enabled=?');          vals.push(enabled ? 1 : 0); }
+    if (min_amount !== undefined)       { fields.push('min_amount=?');       vals.push(min_amount); }
+    if (max_amount !== undefined)       { fields.push('max_amount=?');       vals.push(max_amount); }
+    if (processing_fee !== undefined)   { fields.push('processing_fee=?');   vals.push(processing_fee); }
+    if (fee_type !== undefined)         { fields.push('fee_type=?');         vals.push(fee_type); }
+    if (account_number !== undefined)   { fields.push('account_number=?');   vals.push(account_number); }
+    if (account_name !== undefined)     { fields.push('account_name=?');     vals.push(account_name); }
+    if (instructions !== undefined)     { fields.push('instructions=?');     vals.push(instructions); }
+    if (sort_order !== undefined)       { fields.push('sort_order=?');       vals.push(sort_order); }
+    if (!fields.length) return res.json({ success: false, message: 'Nothing to update.' });
+    fields.push('updated_at=NOW()');
+    vals.push(req.params.code);
+    db.query('UPDATE payment_methods SET '+fields.join(',')+'  WHERE code=?', vals, (err) => {
+        if (err) return res.json({ success: false, message: 'Update failed: ' + err.message });
+        res.json({ success: true, message: 'Payment method updated.' });
     });
 });
 
@@ -1829,6 +1870,31 @@ app.get('/api/admin/payments', authenticate, requireRole('admin'), (req, res) =>
     });
 });
 
+// ── Transactions ledger ───────────────────────────────────────
+app.get('/api/admin/transactions', authenticate, requireRole('admin'), (req, res) => {
+    const { type, direction, status, from, to, search } = req.query;
+    let sql = `SELECT t.*,u.name AS user_name,u.email AS user_email
+               FROM transactions t
+               LEFT JOIN users u ON u.id=t.user_id
+               WHERE 1=1`;
+    const p = [];
+    if (type)      { sql += ' AND t.type=?';      p.push(type); }
+    if (direction) { sql += ' AND t.direction=?'; p.push(direction); }
+    if (status)    { sql += ' AND t.status=?';    p.push(status); }
+    if (from)      { sql += ' AND DATE(t.created_at)>=?'; p.push(from); }
+    if (to)        { sql += ' AND DATE(t.created_at)<=?'; p.push(to); }
+    if (search)    { sql += ' AND (t.txn_ref LIKE ? OR u.name LIKE ? OR t.gateway_ref LIKE ? OR t.description LIKE ?)';
+                     p.push('%'+search+'%','%'+search+'%','%'+search+'%','%'+search+'%'); }
+    sql += ' ORDER BY t.created_at DESC LIMIT 500';
+    db.query(sql, p, (err, rows) => {
+        if (err) return res.json({ success: false, message: 'DB error.' });
+        const total_inflow  = rows.filter(r=>r.direction==='inflow'  && r.status==='completed').reduce((s,r)=>s+parseFloat(r.amount||0),0);
+        const total_outflow = rows.filter(r=>r.direction==='outflow' && r.status==='completed').reduce((s,r)=>s+parseFloat(r.amount||0),0);
+        res.json({ success: true, data: rows, count: rows.length,
+            total_inflow, total_outflow, net: total_inflow - total_outflow });
+    });
+});
+
 app.get('/api/admin/reviews', authenticate, requireRole('admin'), (req, res) => {
     const { show_deleted } = req.query;
     let sql = 'SELECT rv.*,u.name AS customer_name,rs.name AS restaurant_name FROM reviews rv LEFT JOIN users u ON u.id=rv.user_id LEFT JOIN restaurants rs ON rs.id=rv.restaurant_id WHERE 1=1';
@@ -2001,9 +2067,24 @@ app.get('/api/admin/reports/financial', authenticate, requireRole('admin'), (req
 });
 
 app.get('/api/admin/disputes', authenticate, requireRole('admin'), (req, res) => {
-    db.query('SELECT o.*,u.name AS customer_name,u.phone AS customer_phone,u2.name AS rider_name FROM orders o LEFT JOIN users u ON u.id=o.user_id LEFT JOIN users u2 ON u2.id=o.rider_id WHERE o.order_status IN ("failed","failed_delivery","cancelled","rejected") OR o.payment_status IN ("failed","refunded") ORDER BY o.updated_at DESC LIMIT 100', (err, rows) => {
+    const { status, from, to } = req.query;
+    let sql = `SELECT o.*,u.name AS customer_name,u.phone AS customer_phone,
+               u2.name AS rider_name,r.name AS restaurant_name
+               FROM orders o
+               LEFT JOIN users u  ON u.id=o.user_id
+               LEFT JOIN users u2 ON u2.id=o.rider_id
+               LEFT JOIN restaurants r ON r.id=o.restaurant_id
+               WHERE (o.order_status IN ("failed","failed_delivery","cancelled","rejected")
+                   OR o.payment_status IN ("failed","refunded"))
+               AND (o.is_deleted IS NULL OR o.is_deleted=0)`;
+    const p = [];
+    if (status) { sql += ' AND o.order_status=?'; p.push(status); }
+    if (from)   { sql += ' AND DATE(o.updated_at)>=?'; p.push(from); }
+    if (to)     { sql += ' AND DATE(o.updated_at)<=?'; p.push(to); }
+    sql += ' ORDER BY o.updated_at DESC LIMIT 200';
+    db.query(sql, p, (err, rows) => {
         if (err) return res.json({ success: false, message: 'DB error.' });
-        res.json({ success: true, data: rows });
+        res.json({ success: true, data: rows, count: rows.length });
     });
 });
 

@@ -210,11 +210,20 @@ tr:hover td{background:#fafbff}
     <!-- TRANSACTIONS -->
     <div id="section-transactions" class="section">
       <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-exchange-alt"></i> Transactions Ledger</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadTransactions()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div style="padding:8px 18px;background:#e3f2fd;border-bottom:1px solid #bbdefb;font-size:.78rem;color:#1565c0">
+          <i class="fas fa-info-circle"></i>
+          Append-only financial ledger. Every payment, refund, top-up, and withdrawal is recorded here automatically.
+        </div>
         <div class="filter-bar">
           <select id="f-txn-type"><option value="">All Types</option><option>payment</option><option>refund</option><option>topup</option><option>withdrawal</option><option>cashback</option><option>fee</option></select>
+          <select id="f-txn-dir"><option value="">All Directions</option><option value="inflow">Inflow ↓</option><option value="outflow">Outflow ↑</option></select>
           <select id="f-txn-status"><option value="">All Status</option><option>pending</option><option>completed</option><option>failed</option><option>reversed</option></select>
           <input type="date" id="f-txn-from"><input type="date" id="f-txn-to">
-          <input type="text" id="f-txn-search" placeholder="Search ref/user/gateway...">
+          <input type="text" id="f-txn-search" placeholder="Search ref / user / gateway...">
           <button class="btn btn-primary" onclick="loadTransactions()"><i class="fas fa-search"></i> Filter</button>
         </div>
         <div class="card-body" id="transactions-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
@@ -225,6 +234,11 @@ tr:hover td{background:#fafbff}
     <div id="section-refunds" class="section">
       <div class="add-form">
         <h3><i class="fas fa-plus-circle"></i> Initiate Refund</h3>
+        <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.78rem;color:#795548">
+          <i class="fas fa-lightbulb" style="color:#f9a825"></i>
+          <strong>How to create a refund:</strong> Enter the Order ID → click Lookup to verify eligibility → fill in reason → click Initiate Refund.
+          Refunds start as <em>pending</em> and must be manually marked <em>completed</em> after the money is transferred.
+        </div>
         <div class="form-row">
           <div class="form-group" style="position:relative">
             <label>Order ID *</label>
@@ -251,12 +265,23 @@ tr:hover td{background:#fafbff}
           </div>
           <div class="form-group"><label>Reason Detail *</label><input id="rf-reason" placeholder="Describe the reason..."></div>
         </div>
-        <!-- Order preview card shown after lookup -->
         <div id="rf-order-preview" style="display:none;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:.82rem"></div>
         <div id="rf-msg"></div>
         <button class="btn btn-danger" onclick="initiateRefund()"><i class="fas fa-undo"></i> Initiate Refund</button>
       </div>
       <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-list"></i> All Refunds</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadRefunds()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div style="padding:8px 18px;background:#fff8e1;border-bottom:1px solid #ffe082;font-size:.78rem;color:#795548">
+          <i class="fas fa-info-circle" style="color:#f9a825"></i>
+          <strong>Refund lifecycle:</strong>
+          <em>pending</em> → created, awaiting processing &nbsp;|&nbsp;
+          <em>processing</em> → transfer in progress &nbsp;|&nbsp;
+          <em>completed</em> → money returned to customer &nbsp;|&nbsp;
+          <em>failed</em> → transfer failed, contact customer
+        </div>
         <div class="filter-bar">
           <select id="f-rfd-status"><option value="">All Status</option><option>pending</option><option>processing</option><option>completed</option><option>failed</option></select>
           <select id="f-rfd-reason"><option value="">All Reasons</option><option>order_cancelled</option><option>payment_error</option><option>customer_complaint</option><option>duplicate</option><option>other</option></select>
@@ -277,6 +302,75 @@ tr:hover td{background:#fafbff}
         <div id="refund-detail-body" style="font-size:.85rem;line-height:1.8"></div>
       </div>
     </div>
+
+    <!-- Process Refund Modal (gateway ref input) -->
+    <div class="modal-overlay" id="process-refund-modal">
+      <div class="modal" style="max-width:400px;text-align:center">
+        <h3 style="margin-bottom:12px"><i class="fas fa-check-circle" style="color:#27ae60"></i> Complete Refund</h3>
+        <p style="font-size:.85rem;color:#666;margin-bottom:14px">Enter the gateway/bank reference number for this refund (optional but recommended for tracking).</p>
+        <input id="gateway-ref-input" type="text" placeholder="e.g. TXN-123456 or leave blank" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:.9rem;box-sizing:border-box;margin-bottom:14px">
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-primary" onclick="closeModal('process-refund-modal')" style="min-width:90px"><i class="fas fa-times"></i> Cancel</button>
+          <button class="btn btn-success" id="process-refund-ok" style="min-width:90px"><i class="fas fa-check"></i> Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Force Refund Modal (disputes) -->
+    <div class="modal-overlay" id="force-refund-modal">
+      <div class="modal" style="max-width:420px">
+        <h3 style="margin-bottom:12px"><i class="fas fa-undo" style="color:#e74c3c"></i> Force Refund</h3>
+        <p style="font-size:.85rem;color:#666;margin-bottom:4px">Order: <strong id="fr-order-id-label"></strong></p>
+        <p style="font-size:.82rem;color:#e65100;margin-bottom:14px"><i class="fas fa-exclamation-triangle"></i> This immediately marks the order as refunded and creates a completed refund record.</p>
+        <div class="form-group"><label>Reason Type</label>
+          <select id="fr-reason-type" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
+            <option value="customer_complaint">Customer Complaint</option>
+            <option value="order_cancelled">Order Cancelled</option>
+            <option value="payment_error">Payment Error</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Reason Detail *</label>
+          <input id="fr-reason-detail" placeholder="Describe why this refund is being forced...">
+        </div>
+        <div id="fr-msg"></div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn btn-primary" onclick="closeModal('force-refund-modal')" style="flex:1"><i class="fas fa-times"></i> Cancel</button>
+          <button class="btn btn-danger" onclick="submitForceRefund()" style="flex:1"><i class="fas fa-undo"></i> Force Refund</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Payment Method Modal -->
+    <div class="modal-overlay" id="edit-paymethod-modal">
+      <div class="modal" style="max-width:480px">
+        <h3 style="margin-bottom:16px"><i class="fas fa-edit" style="color:#ff6b35"></i> Edit Payment Method</h3>
+        <input type="hidden" id="epm-code">
+        <div class="form-row">
+          <div class="form-group"><label>Display Name</label><input id="epm-name" placeholder="e.g. TeleBirr Mobile Money"></div>
+          <div class="form-group"><label>Min Amount (ETB)</label><input id="epm-min" type="number" min="0"></div>
+          <div class="form-group"><label>Max Amount (ETB)</label><input id="epm-max" type="number" min="0"></div>
+          <div class="form-group"><label>Processing Fee</label><input id="epm-fee" type="number" min="0" step="0.01"></div>
+          <div class="form-group"><label>Fee Type</label>
+            <select id="epm-fee-type" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
+              <option value="fixed">Fixed (ETB)</option>
+              <option value="percent">Percent (%)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Account Number</label><input id="epm-account-num" placeholder="e.g. 0912345678"></div>
+          <div class="form-group"><label>Account Name</label><input id="epm-account-name" placeholder="e.g. KochaEats Business"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Customer Instructions</label>
+            <textarea id="epm-instructions" rows="3" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem;resize:vertical;box-sizing:border-box" placeholder="Step-by-step instructions for the customer..."></textarea>
+          </div>
+        </div>
+        <div id="epm-msg"></div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn btn-primary" onclick="closeModal('edit-paymethod-modal')" style="flex:1"><i class="fas fa-times"></i> Cancel</button>
+          <button class="btn btn-success" onclick="savePayMethod()" style="flex:1"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+
     <div id="section-reviews" class="section">
       <div class="card"><div class="card-header"><h2><i class="fas fa-star"></i> All Reviews</h2></div><div class="card-body" id="reviews-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div></div>
     </div>
@@ -297,7 +391,26 @@ tr:hover td{background:#fafbff}
     <!-- DISPUTES -->
     <div id="section-disputes" class="section">
       <div class="card">
-        <div class="card-header"><h2><i class="fas fa-exclamation-triangle"></i> Disputes &amp; Failed Orders</h2></div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-exclamation-triangle" style="color:#e65100"></i> Disputes &amp; Failed Orders</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadDisputes()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div style="padding:8px 18px;background:#fff3e0;border-bottom:1px solid #ffe0b2;font-size:.78rem;color:#795548">
+          <i class="fas fa-info-circle" style="color:#e65100"></i>
+          Shows all failed, cancelled, and rejected orders plus any with failed/refunded payments.
+          Use <strong>Force Refund</strong> to immediately refund a paid order, or <strong>Cancel</strong> to close an active dispute.
+        </div>
+        <div class="filter-bar">
+          <select id="f-disp-status">
+            <option value="">All Statuses</option>
+            <option value="failed">Failed</option>
+            <option value="failed_delivery">Failed Delivery</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <input type="date" id="f-disp-from"><input type="date" id="f-disp-to">
+          <button class="btn btn-primary" onclick="loadDisputes()"><i class="fas fa-search"></i> Filter</button>
+        </div>
         <div class="card-body" id="disputes-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
       </div>
     </div>
@@ -305,7 +418,15 @@ tr:hover td{background:#fafbff}
     <!-- PAYMENT CONFIG -->
     <div id="section-payconfig" class="section">
       <div class="card">
-        <div class="card-header"><h2><i class="fas fa-sliders-h"></i> Payment Method Configuration</h2></div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-sliders-h"></i> Payment Method Configuration</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadPayConfig()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div style="padding:8px 18px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;font-size:.78rem;color:#2e7d32">
+          <i class="fas fa-info-circle"></i>
+          Enable or disable payment methods, set min/max amounts, processing fees, and account details.
+          Changes take effect immediately for new orders.
+        </div>
         <div class="card-body" id="payconfig-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
       </div>
     </div>
@@ -440,8 +561,32 @@ function showSection(name){
 }
 
 async function api(url,opts={}){
-  const r=await fetch(API+url,{headers:H(),...opts});
-  return r.json();
+  let r;
+  try {
+    r = await fetch(API+url,{headers:H(),...opts});
+  } catch(networkErr) {
+    throw new Error('Cannot reach server. Make sure the backend is running on '+API);
+  }
+  // If the server returned HTML (crash page, 404, nginx error), r.json() would throw
+  // "Unexpected token '<'" — catch it and give a clear message instead
+  const text = await r.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    if (r.status === 401) throw new Error('Session expired. Please log in again.');
+    if (r.status === 403) throw new Error('Access denied. Admin role required.');
+    if (r.status === 404) throw new Error('API endpoint not found: '+url);
+    throw new Error('Server error ('+r.status+'). The backend may have crashed — check the terminal.');
+  }
+  // Auto-redirect on expired token
+  if (data && data.message && (data.message.includes('expired') || data.message.includes('Invalid or expired'))) {
+    localStorage.removeItem('kochaToken');
+    localStorage.removeItem('kochaUser');
+    window.location.href='kochaEats.html';
+    throw new Error('Session expired. Redirecting to login...');
+  }
+  return data;
 }
 
 // STATS
@@ -1062,53 +1207,91 @@ loadRecentOrders();
 // DISPUTES
 async function loadDisputes(){
   document.getElementById('disputes-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const status=document.getElementById('f-disp-status').value;
+  const from=document.getElementById('f-disp-from').value;
+  const to=document.getElementById('f-disp-to').value;
+  let url='/api/admin/disputes?';
+  if(status)url+='status='+status+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to;
   try{
-    const d=await api('/api/admin/disputes');
+    const d=await api(url);
     const rows=d.data||[];
-    if(!rows.length){document.getElementById('disputes-wrap').innerHTML='<div class="empty-state"><i class="fas fa-check-circle"></i>No disputes found</div>';return;}
-    document.getElementById('disputes-wrap').innerHTML='<table><thead><tr><th>Order ID</th><th>Customer</th><th>Rider</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Date</th><th>Actions</th></tr></thead><tbody>'+
+    const summary='<div style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #f0f0f0">'+
+      '<div style="background:#ffebee;color:#c62828;padding:6px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-exclamation-triangle"></i> Total: <strong>'+rows.length+'</strong></div>'+
+      '<div style="background:#fff3e0;color:#e65100;padding:6px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-times-circle"></i> Failed: <strong>'+rows.filter(o=>o.order_status==='failed'||o.order_status==='failed_delivery').length+'</strong></div>'+
+      '<div style="background:#f3e5f5;color:#6a1b9a;padding:6px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-ban"></i> Cancelled: <strong>'+rows.filter(o=>o.order_status==='cancelled').length+'</strong></div>'+
+      '<div style="background:#e3f2fd;color:#1565c0;padding:6px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-undo"></i> Refunded: <strong>'+rows.filter(o=>o.payment_status==='refunded').length+'</strong></div>'+
+      '</div>';
+    if(!rows.length){document.getElementById('disputes-wrap').innerHTML=summary+'<div class="empty-state"><i class="fas fa-check-circle"></i>No disputes found</div>';return;}
+    document.getElementById('disputes-wrap').innerHTML=summary+
+      '<table><thead><tr><th>Order ID</th><th>Customer</th><th>Restaurant</th><th>Rider</th><th>Total</th><th>Order Status</th><th>Payment</th><th>Updated</th><th>Actions</th></tr></thead><tbody>'+
       rows.map(o=>'<tr>'+
-        '<td>#'+o.id+'</td>'+
-        '<td>'+(o.customer_name||'-')+'<br><small style="color:#888">'+(o.customer_phone||'')+'</small></td>'+
-        '<td>'+(o.rider_name||'<span style="color:#aaa">None</span>')+'</td>'+
-        '<td>ETB '+parseFloat(o.total||0).toFixed(2)+'</td>'+
+        '<td style="font-family:monospace;font-size:.78rem">#'+o.id+'</td>'+
+        '<td style="font-size:.82rem">'+(o.customer_name||'-')+'<br><small style="color:#888">'+(o.customer_phone||'')+'</small></td>'+
+        '<td style="font-size:.78rem">'+(o.restaurant_name||'-')+'</td>'+
+        '<td style="font-size:.78rem">'+(o.rider_name||'<span style="color:#aaa">None</span>')+'</td>'+
+        '<td style="font-weight:600">ETB '+parseFloat(o.total||0).toFixed(2)+'</td>'+
         '<td>'+badge(o.order_status)+'</td>'+
         '<td>'+badge(o.payment_status)+'</td>'+
-        '<td>'+fmtDate(o.updated_at||o.created_at)+'</td>'+
+        '<td style="font-size:.75rem">'+fmtDate(o.updated_at||o.created_at)+'</td>'+
         '<td><div class="action-group">'+
-          '<button class="btn btn-danger btn-sm" onclick="forceRefund(\''+o.id+'\')"><i class="fas fa-undo"></i> Refund</button>'+
-          '<button class="btn btn-warning btn-sm" onclick="updateOrderStatus(\''+o.id+'\',\'cancelled\')"><i class="fas fa-times"></i> Cancel</button>'+
+          (o.payment_status==='paid'?'<button class="btn btn-danger btn-sm" onclick="openForceRefund(\''+o.id+'\')"><i class="fas fa-undo"></i> Refund</button>':'')+
+          (o.payment_status==='refunded'?'<span style="color:#27ae60;font-size:.72rem"><i class="fas fa-check-circle"></i> Refunded</span>':'')+
+          (!['cancelled','refunded'].includes(o.order_status)?'<button class="btn btn-warning btn-sm" onclick="updateOrderStatus(\''+o.id+'\',\'cancelled\')"><i class="fas fa-times"></i> Cancel</button>':'')+
         '</div></td>'+
       '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('disputes-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
-async function forceRefund(orderId){
-  const reason=prompt('Refund reason:','Customer complaint');
-  if(reason===null)return;
+let _forceRefundOrderId=null;
+function openForceRefund(orderId){
+  _forceRefundOrderId=orderId;
+  document.getElementById('fr-order-id-label').textContent='#'+orderId;
+  document.getElementById('fr-reason-detail').value='';
+  document.getElementById('fr-msg').innerHTML='';
+  openModal('force-refund-modal');
+}
+async function submitForceRefund(){
+  const reason=document.getElementById('fr-reason-detail').value.trim();
+  const reason_type=document.getElementById('fr-reason-type').value;
+  const msg=document.getElementById('fr-msg');
+  if(!reason){msg.innerHTML='<div class="error-msg">Reason detail is required.</div>';return;}
   try{
-    const d=await api('/api/admin/orders/'+orderId+'/force-refund',{method:'POST',body:JSON.stringify({reason})});
-    toast(d.message||'Refunded',d.success?'success':'error');
-    if(d.success)loadDisputes();
-  }catch(e){toast(e.message,'error');}
+    const d=await api('/api/admin/orders/'+_forceRefundOrderId+'/force-refund',{method:'POST',body:JSON.stringify({reason,reason_type})});
+    if(!d.success)throw new Error(d.message);
+    toast('Refund processed! Ref: '+d.refund_ref,'success');
+    closeModal('force-refund-modal');
+    loadDisputes();
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function forceRefund(orderId){
+  openForceRefund(orderId);
 }
 
 // PAYMENT CONFIG
 async function loadPayConfig(){
   document.getElementById('payconfig-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
   try{
-    const d=await api('/api/payment-methods');
+    const d=await api('/api/admin/payment-methods');
     const methods=d.data||[];
     if(!methods.length){document.getElementById('payconfig-wrap').innerHTML='<div class="empty-state">No payment methods configured</div>';return;}
-    document.getElementById('payconfig-wrap').innerHTML='<table><thead><tr><th>Method</th><th>Label</th><th>Min Amount</th><th>Max Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+    document.getElementById('payconfig-wrap').innerHTML=
+      '<table><thead><tr><th>Method</th><th>Name</th><th>Type</th><th>Provider</th><th>Min</th><th>Max</th><th>Fee</th><th>Account</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
       methods.map(m=>'<tr>'+
-        '<td><i class="fas '+m.icon+'" style="color:#ff6b35;margin-right:6px"></i>'+m.method+'</td>'+
-        '<td>'+m.label+'</td>'+
+        '<td><i class="fas '+m.icon+'" style="color:#ff6b35;margin-right:6px"></i><strong>'+m.code+'</strong></td>'+
+        '<td>'+m.name+'</td>'+
+        '<td>'+badge(m.type)+'</td>'+
+        '<td style="font-size:.75rem">'+(m.provider||'-')+'</td>'+
         '<td>ETB '+parseFloat(m.min_amount||0).toFixed(0)+'</td>'+
         '<td>ETB '+parseFloat(m.max_amount||0).toFixed(0)+'</td>'+
+        '<td style="font-size:.78rem">'+(parseFloat(m.processing_fee||0)>0?m.processing_fee+(m.fee_type==='percent'?'%':' ETB'):'-')+'</td>'+
+        '<td style="font-size:.72rem">'+(m.account_number?m.account_number+'<br><small>'+m.account_name+'</small>':'-')+'</td>'+
         '<td>'+badge(m.enabled?'active':'inactive')+'</td>'+
         '<td><div class="action-group">'+
-          '<button class="btn '+(m.enabled?'btn-danger':'btn-success')+' btn-sm" onclick="togglePayMethod(\''+m.method+'\')">'+
+          '<button class="btn btn-warning btn-sm" onclick="editPayMethod('+JSON.stringify(m).replace(/"/g,'&quot;')+')"><i class="fas fa-edit"></i></button>'+
+          '<button class="btn '+(m.enabled?'btn-danger':'btn-success')+' btn-sm" onclick="togglePayMethod(\''+m.code+'\')">'+
             (m.enabled?'<i class="fas fa-ban"></i> Disable':'<i class="fas fa-check"></i> Enable')+
           '</button>'+
         '</div></td>'+
@@ -1116,12 +1299,48 @@ async function loadPayConfig(){
   }catch(e){document.getElementById('payconfig-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
-async function togglePayMethod(method){
+async function togglePayMethod(code){
   try{
-    const d=await api('/api/admin/payment-config/'+method+'/toggle',{method:'PATCH'});
+    const d=await api('/api/admin/payment-methods/'+code+'/toggle',{method:'PATCH'});
     toast(d.message||'Updated',d.success?'success':'error');
     if(d.success)loadPayConfig();
   }catch(e){toast(e.message,'error');}
+}
+
+function editPayMethod(m){
+  document.getElementById('epm-code').value=m.code;
+  document.getElementById('epm-name').value=m.name||'';
+  document.getElementById('epm-min').value=m.min_amount||0;
+  document.getElementById('epm-max').value=m.max_amount||999999;
+  document.getElementById('epm-fee').value=m.processing_fee||0;
+  document.getElementById('epm-fee-type').value=m.fee_type||'fixed';
+  document.getElementById('epm-account-num').value=m.account_number||'';
+  document.getElementById('epm-account-name').value=m.account_name||'';
+  document.getElementById('epm-instructions').value=m.instructions||'';
+  document.getElementById('epm-msg').innerHTML='';
+  openModal('edit-paymethod-modal');
+}
+
+async function savePayMethod(){
+  const code=document.getElementById('epm-code').value;
+  const body={
+    name:document.getElementById('epm-name').value,
+    min_amount:parseFloat(document.getElementById('epm-min').value)||0,
+    max_amount:parseFloat(document.getElementById('epm-max').value)||999999,
+    processing_fee:parseFloat(document.getElementById('epm-fee').value)||0,
+    fee_type:document.getElementById('epm-fee-type').value,
+    account_number:document.getElementById('epm-account-num').value,
+    account_name:document.getElementById('epm-account-name').value,
+    instructions:document.getElementById('epm-instructions').value
+  };
+  const msg=document.getElementById('epm-msg');
+  try{
+    const d=await api('/api/admin/payment-methods/'+code,{method:'PATCH',body:JSON.stringify(body)});
+    if(!d.success)throw new Error(d.message);
+    toast('Payment method updated!','success');
+    closeModal('edit-paymethod-modal');
+    loadPayConfig();
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
 // ENHANCED REPORTS
@@ -1176,12 +1395,14 @@ async function loadReport(){
 async function loadTransactions(){
   document.getElementById('transactions-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
   const type=document.getElementById('f-txn-type').value;
+  const dir=document.getElementById('f-txn-dir').value;
   const status=document.getElementById('f-txn-status').value;
   const from=document.getElementById('f-txn-from').value;
   const to=document.getElementById('f-txn-to').value;
   const search=document.getElementById('f-txn-search').value;
   let url='/api/admin/transactions?';
   if(type)url+='type='+type+'&';
+  if(dir)url+='direction='+dir+'&';
   if(status)url+='status='+status+'&';
   if(from)url+='from='+from+'&';
   if(to)url+='to='+to+'&';
@@ -1197,22 +1418,23 @@ async function loadTransactions(){
       '</div>';
     if(!txns.length){document.getElementById('transactions-wrap').innerHTML=summary+'<div class="empty-state"><i class="fas fa-exchange-alt"></i>No transactions found</div>';return;}
     document.getElementById('transactions-wrap').innerHTML=summary+
-      '<table><thead><tr><th>Ref</th><th>Type</th><th>Direction</th><th>User</th><th>Order</th><th>Amount</th><th>Fee</th><th>Net</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
+      '<table><thead><tr><th>Ref</th><th>Type</th><th>Direction</th><th>User</th><th>Order</th><th>Amount</th><th>Fee</th><th>Net</th><th>Method</th><th>Status</th><th>Description</th><th>Date</th></tr></thead><tbody>'+
       txns.map(t=>'<tr>'+
-        '<td style="font-size:.7rem">'+t.txn_ref+'</td>'+
+        '<td style="font-size:.7rem;font-family:monospace">'+t.txn_ref+'</td>'+
         '<td>'+badge(t.type)+'</td>'+
         '<td><span style="font-size:.72rem;font-weight:600;color:'+(t.direction==='inflow'?'#27ae60':'#e74c3c')+'">'+
           '<i class="fas fa-arrow-'+(t.direction==='inflow'?'down':'up')+'"></i> '+t.direction+'</span></td>'+
-        '<td>'+(t.user_name||'-')+'</td>'+
-        '<td>'+(t.order_id?'#'+t.order_id:'-')+'</td>'+
+        '<td style="font-size:.78rem">'+(t.user_name||'-')+'</td>'+
+        '<td style="font-size:.78rem">'+(t.order_id?'#'+t.order_id:'-')+'</td>'+
         '<td style="font-weight:600">ETB '+parseFloat(t.amount||0).toFixed(2)+'</td>'+
-        '<td style="color:#e74c3c">'+(parseFloat(t.fee||0)>0?'ETB '+parseFloat(t.fee).toFixed(2):'-')+'</td>'+
+        '<td style="color:#e74c3c;font-size:.78rem">'+(parseFloat(t.fee||0)>0?'ETB '+parseFloat(t.fee).toFixed(2):'-')+'</td>'+
         '<td style="font-weight:600;color:'+(t.direction==='inflow'?'#27ae60':'#e74c3c')+'">ETB '+parseFloat(t.net_amount||0).toFixed(2)+'</td>'+
-        '<td>'+(t.method||'-')+'</td>'+
+        '<td style="font-size:.78rem">'+(t.method||'-')+'</td>'+
         '<td>'+badge(t.status)+'</td>'+
-        '<td>'+fmtDate(t.created_at)+'</td>'+
+        '<td style="font-size:.72rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#666">'+(t.description||'-')+'</td>'+
+        '<td style="font-size:.75rem">'+fmtDate(t.created_at)+'</td>'+
       '</tr>').join('')+'</tbody></table>';
-  }catch(e){document.getElementById('transactions-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+  }catch(e){document.getElementById('transactions-wrap').innerHTML='<div class="error-msg"><i class="fas fa-exclamation-circle"></i> '+e.message+'</div>';}
 }
 
 // REFUNDS
@@ -1296,13 +1518,29 @@ function viewRefundDetail(r){
 }
 
 async function processRefund(id, status){
-  const gateway_ref = status==='completed' ? prompt('Gateway reference (optional, press OK to skip):','') : null;
-  if(gateway_ref===null && status==='completed') return;
-  try{
-    const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref:gateway_ref||null})});
-    toast(d.message||'Updated',d.success?'success':'error');
-    if(d.success)loadRefunds();
-  }catch(e){toast(e.message,'error');}
+  if(status==='completed'){
+    // Open modal for gateway ref input
+    document.getElementById('gateway-ref-input').value='';
+    const okBtn=document.getElementById('process-refund-ok');
+    const newBtn=okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newBtn,okBtn);
+    newBtn.addEventListener('click',async()=>{
+      const gateway_ref=document.getElementById('gateway-ref-input').value.trim()||null;
+      closeModal('process-refund-modal');
+      try{
+        const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref})});
+        toast(d.message||'Updated',d.success?'success':'error');
+        if(d.success)loadRefunds();
+      }catch(e){toast(e.message,'error');}
+    });
+    openModal('process-refund-modal');
+  } else {
+    try{
+      const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref:null})});
+      toast(d.message||'Updated',d.success?'success':'error');
+      if(d.success)loadRefunds();
+    }catch(e){toast(e.message,'error');}
+  }
 }
 
 // Order lookup for refund form
@@ -1366,38 +1604,5 @@ async function initiateRefund(){
   }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
-// UPDATED PAYCONFIG — uses payment_methods table
-async function loadPayConfig(){
-  document.getElementById('payconfig-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
-  try{
-    const d=await api('/api/admin/payment-methods');
-    const methods=d.data||[];
-    if(!methods.length){document.getElementById('payconfig-wrap').innerHTML='<div class="empty-state">No payment methods configured</div>';return;}
-    document.getElementById('payconfig-wrap').innerHTML=
-      '<table><thead><tr><th>Method</th><th>Name</th><th>Type</th><th>Provider</th><th>Min</th><th>Max</th><th>Fee</th><th>Account</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
-      methods.map(m=>'<tr>'+
-        '<td><i class="fas '+m.icon+'" style="color:#ff6b35;margin-right:6px"></i><strong>'+m.code+'</strong></td>'+
-        '<td>'+m.name+'</td>'+
-        '<td>'+badge(m.type)+'</td>'+
-        '<td style="font-size:.75rem">'+(m.provider||'-')+'</td>'+
-        '<td>ETB '+parseFloat(m.min_amount||0).toFixed(0)+'</td>'+
-        '<td>ETB '+parseFloat(m.max_amount||0).toFixed(0)+'</td>'+
-        '<td>'+(parseFloat(m.processing_fee||0)>0?m.processing_fee+(m.fee_type==='percent'?'%':' ETB'):'-')+'</td>'+
-        '<td style="font-size:.72rem">'+(m.account_number?m.account_number+'<br><small>'+m.account_name+'</small>':'-')+'</td>'+
-        '<td>'+badge(m.enabled?'active':'inactive')+'</td>'+
-        '<td><button class="btn '+(m.enabled?'btn-danger':'btn-success')+' btn-sm" onclick="togglePayMethod(\''+m.code+'\')">'+
-          (m.enabled?'<i class="fas fa-ban"></i> Disable':'<i class="fas fa-check"></i> Enable')+
-        '</button></td>'+
-      '</tr>').join('')+'</tbody></table>';
-  }catch(e){document.getElementById('payconfig-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
-}
-
-async function togglePayMethod(code){
-  try{
-    const d=await api('/api/admin/payment-methods/'+code+'/toggle',{method:'PATCH'});
-    toast(d.message||'Updated',d.success?'success':'error');
-    if(d.success)loadPayConfig();
-  }catch(e){toast(e.message,'error');}
-}
 </script>
 </body></html>
