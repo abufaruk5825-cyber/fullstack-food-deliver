@@ -4334,20 +4334,23 @@ function completeOrder() {
     app.clearCart();
     if (app.coupon) { app.coupon = null; app.saveToStorage('coupon', null); }
 
-    // Close checkout modal
+    // Close all modals
     closeModal('checkoutModal');
+    closeModal('cartModal');
 
-    // Success message
-    let successMessage = 'Order #' + orderId + ' placed successfully!';
-    if (app.paymentMethod === 'cbebirr')   successMessage += ' Transfer ETB ' + total.toFixed(2) + ' to account 1000609876534';
+    // Build success message
+    let successMessage = 'Order placed successfully!';
+    if (app.paymentMethod === 'cbebirr')    successMessage += ' Transfer ETB ' + total.toFixed(2) + ' to account 1000609876534';
     else if (app.paymentMethod === 'telebirr') successMessage += ' Complete payment via TeleBirr';
-    else if (app.paymentMethod === 'cash') successMessage += ' Prepare ETB ' + total.toFixed(2) + ' in cash for the rider';
+    else if (app.paymentMethod === 'cash')  successMessage += ' Pay ETB ' + total.toFixed(2) + ' in cash to the rider';
     else if (app.paymentMethod === 'amole') successMessage += ' Complete payment via Amole';
 
     app.showToast(successMessage, 'success');
 
-    // Show order tracking
-    setTimeout(() => { showOrderTracking(order); }, 1000);
+    // Redirect to customer dashboard after short delay
+    setTimeout(() => {
+      window.location.href = 'customer-dashboard.html?tab=orders&new=1';
+    }, 1500);
   })
   .catch(err => {
     console.error('Order error:', err);

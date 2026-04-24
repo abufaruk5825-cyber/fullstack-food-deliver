@@ -49,14 +49,16 @@ db.connect(err => {
         db.query('USE kochaeats', err => {
             if (err) { console.error('USE db error:', err.message); return; }
             console.log('âœ… Using database: kochaeats');
-            createTables(() => seedDefaultAdmin());
+            createTables(() => {
+                seedDefaultAdmin();
+            });
         });
     });
 });
 
 // â”€â”€ Create Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function createTables(callback) {
-    let pending = 16, errors = 0;
+    let pending = 17, errors = 0; // must match exact number of done() calls below
     function done(err, name) {
         if (err) { console.error(name + ' table error:', err.message); errors++; }
         else console.log('âœ… ' + name + ' table ready');
@@ -71,7 +73,7 @@ function createTables(callback) {
         role       ENUM('customer','rider','admin') DEFAULT 'customer',
         phone      VARCHAR(20),
         address    TEXT,
-        status     ENUM('active','suspended','pending') DEFAULT 'active',
+        status     ENUM('active','suspended','pending','deleted') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`, err => done(err, 'users'));
@@ -87,7 +89,11 @@ function createTables(callback) {
         rating       DECIMAL(3,2) DEFAULT 0.00,
         status       ENUM('active','inactive') DEFAULT 'active',
         owner_id     INT,
+        is_deleted   TINYINT(1) DEFAULT 0,
+        deleted_at   TIMESTAMP NULL,
+        deleted_by   INT,
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
     )`, err => done(err, 'restaurants'));
 
@@ -100,7 +106,11 @@ function createTables(callback) {
         category      VARCHAR(50),
         image         VARCHAR(255),
         available     TINYINT(1) DEFAULT 1,
+        is_deleted    TINYINT(1) DEFAULT 0,
+        deleted_at    TIMESTAMP NULL,
+        deleted_by    INT,
         created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
     )`, err => done(err, 'menu_items'));
 
@@ -117,27 +127,34 @@ function createTables(callback) {
     )`, err => done(err, 'cart'));
 
     db.query(`CREATE TABLE IF NOT EXISTS orders (
-        id               VARCHAR(50) PRIMARY KEY,
-        user_id          INT,
-        restaurant_id    INT,
-        rider_id         INT,
-        user_name        VARCHAR(100),
-        user_email       VARCHAR(100),
-        user_phone       VARCHAR(20),
-        delivery_address TEXT,
-        delivery_area    VARCHAR(100),
-        items            JSON,
-        subtotal         DECIMAL(10,2) DEFAULT 0,
-        delivery_fee     DECIMAL(10,2) DEFAULT 0,
-        discount         DECIMAL(10,2) DEFAULT 0,
-        total            DECIMAL(10,2) NOT NULL,
-        payment_method   ENUM('cash','telebirr','cbebirr','amole','card','wallet','bank_transfer') DEFAULT 'cash',
-        payment_status   ENUM('pending','awaiting_payment','paid','failed','refunded','cancelled') DEFAULT 'pending',
-        order_status     ENUM('pending','confirmed','preparing','ready','ready_for_pickup','assigned_to_rider','picked_up','out_for_delivery','delivered','cancelled','rejected','failed','failed_delivery','refunded') DEFAULT 'pending',
-        coupon_code      VARCHAR(50),
-        notes            TEXT,
-        created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        id                      VARCHAR(50) PRIMARY KEY,
+        user_id                 INT,
+        restaurant_id           INT,
+        rider_id                INT,
+        user_name               VARCHAR(100),
+        user_email              VARCHAR(100),
+        user_phone              VARCHAR(20),
+        delivery_address        TEXT,
+        delivery_area           VARCHAR(100),
+        items                   JSON,
+        subtotal                DECIMAL(10,2) DEFAULT 0,
+        delivery_fee            DECIMAL(10,2) DEFAULT 0,
+        discount                DECIMAL(10,2) DEFAULT 0,
+        total                   DECIMAL(10,2) NOT NULL,
+        payment_method          ENUM('cash','telebirr','cbebirr','amole','card','wallet','bank_transfer') DEFAULT 'cash',
+        payment_status          ENUM('pending','awaiting_payment','paid','failed','refunded','cancelled') DEFAULT 'pending',
+        order_status            ENUM('pending','confirmed','preparing','ready','ready_for_pickup','assigned_to_rider','picked_up','out_for_delivery','delivered','cancelled','rejected','failed','failed_delivery','refunded') DEFAULT 'pending',
+        coupon_code             VARCHAR(50),
+        notes                   TEXT,
+        is_hidden_by_customer   TINYINT(1) DEFAULT 0,
+        is_deleted              TINYINT(1) DEFAULT 0,
+        deleted_at              TIMESTAMP NULL,
+        deleted_by              INT,
+        created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_orders_user   (user_id, created_at),
+        INDEX idx_orders_rider  (rider_id, order_status),
+        INDEX idx_orders_status (order_status),
         FOREIGN KEY (user_id)       REFERENCES users(id) ON DELETE SET NULL,
         FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL,
         FOREIGN KEY (rider_id)      REFERENCES users(id) ON DELETE SET NULL
@@ -174,7 +191,9 @@ function createTables(callback) {
         ip_address          VARCHAR(45),
         created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+        INDEX idx_payments_order (order_id),
+        INDEX idx_payments_user  (user_id),
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE RESTRICT,
         FOREIGN KEY (user_id)  REFERENCES users(id) ON DELETE SET NULL
     )`, err => done(err, 'payments'));
 
@@ -183,10 +202,15 @@ function createTables(callback) {
         user_id       INT,
         order_id      VARCHAR(50),
         restaurant_id INT,
-        rating        TINYINT NOT NULL,
+        rating        TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
         comment       TEXT,
+        is_deleted    TINYINT(1) DEFAULT 0,
+        deleted_at    TIMESTAMP NULL,
+        deleted_by    INT,
         created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY one_review_per_order (user_id, order_id),
+        INDEX idx_reviews_restaurant (restaurant_id),
         FOREIGN KEY (user_id)       REFERENCES users(id) ON DELETE SET NULL,
         FOREIGN KEY (order_id)      REFERENCES orders(id) ON DELETE SET NULL,
         FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
@@ -291,6 +315,9 @@ function createTables(callback) {
         metadata        JSON,
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_txn_user   (user_id, created_at),
+        INDEX idx_txn_order  (order_id),
+        INDEX idx_txn_type   (type, direction),
         FOREIGN KEY (user_id)    REFERENCES users(id) ON DELETE SET NULL,
         FOREIGN KEY (order_id)   REFERENCES orders(id) ON DELETE SET NULL,
         FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL,
@@ -301,7 +328,7 @@ function createTables(callback) {
     db.query(`CREATE TABLE IF NOT EXISTS refunds (
         id              INT AUTO_INCREMENT PRIMARY KEY,
         refund_ref      VARCHAR(80) UNIQUE NOT NULL,
-        payment_id      INT NOT NULL,
+        payment_id      INT,
         order_id        VARCHAR(50) NOT NULL,
         user_id         INT,
         amount          DECIMAL(10,2) NOT NULL,
@@ -316,8 +343,11 @@ function createTables(callback) {
         processed_at    TIMESTAMP NULL,
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (payment_id)   REFERENCES payments(id) ON DELETE CASCADE,
-        FOREIGN KEY (order_id)     REFERENCES orders(id) ON DELETE CASCADE,
+        INDEX idx_refunds_order  (order_id),
+        INDEX idx_refunds_user   (user_id),
+        INDEX idx_refunds_status (status),
+        FOREIGN KEY (payment_id)   REFERENCES payments(id) ON DELETE SET NULL,
+        FOREIGN KEY (order_id)     REFERENCES orders(id) ON DELETE RESTRICT,
         FOREIGN KEY (user_id)      REFERENCES users(id) ON DELETE SET NULL,
         FOREIGN KEY (initiated_by) REFERENCES users(id) ON DELETE SET NULL
     )`, err => done(err, 'refunds'));
@@ -332,6 +362,22 @@ function createTables(callback) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )`, err => done(err, 'password_reset_tokens'));
+
+    // ── 17. delete_logs ───────────────────────────────────────
+    // Immutable audit trail for every admin deletion
+    db.query(`CREATE TABLE IF NOT EXISTS delete_logs (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        admin_id     INT NOT NULL,
+        admin_email  VARCHAR(100),
+        table_name   VARCHAR(50) NOT NULL,
+        record_id    VARCHAR(100) NOT NULL,
+        record_label VARCHAR(255),
+        reason       TEXT,
+        deleted_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_dl_admin (admin_id),
+        INDEX idx_dl_table (table_name),
+        INDEX idx_dl_time  (deleted_at)
+    )`, err => done(err, 'delete_logs'));
 }
 
 function seedDefaultAdmin() {
@@ -368,7 +414,30 @@ function seedDefaultAdmin() {
         "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS description TEXT",
         "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS cuisine_type VARCHAR(100)",
         "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS image VARCHAR(255)",
-        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS rating DECIMAL(3,2) DEFAULT 0.00"
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS rating DECIMAL(3,2) DEFAULT 0.00",
+        // New: updated_at on tables that were missing it
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        // New: is_hidden_by_customer (also added in CREATE TABLE for fresh installs)
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_hidden_by_customer TINYINT(1) DEFAULT 0",
+        // New: make refunds.payment_id nullable (auto-refunds may have no payment record)
+        "ALTER TABLE refunds MODIFY COLUMN payment_id INT NULL",
+        // New: add 'deleted' status to users for soft-delete
+        "ALTER TABLE users MODIFY COLUMN status ENUM('active','suspended','pending','deleted') DEFAULT 'active'",
+        // Soft-delete columns for orders, restaurants, menu_items, reviews
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_by INT",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL",
+        "ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS deleted_by INT",
+        "ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0",
+        "ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL",
+        "ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS deleted_by INT",
+        "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0",
+        "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL",
+        "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS deleted_by INT"
     ];    migrations.forEach(sql => {
         db.query(sql, (err) => {
             if (err && !err.message.includes('Duplicate column') && !err.message.includes('already exists'))
@@ -634,10 +703,11 @@ app.get('/api/orders', authenticate, requireRole('customer'), (req, res) => {
     const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
-    db.query('SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+    // Exclude orders the customer has soft-deleted (hidden from their view)
+    db.query('SELECT * FROM orders WHERE user_id=? AND (is_hidden_by_customer IS NULL OR is_hidden_by_customer=0) ORDER BY created_at DESC LIMIT ? OFFSET ?',
         [req.user.id, limit, offset], (err, rows) => {
             if (err) return res.json({ success: false, message: 'DB error.' });
-            db.query('SELECT COUNT(*) AS total FROM orders WHERE user_id=?', [req.user.id], (e, c) => {
+            db.query('SELECT COUNT(*) AS total FROM orders WHERE user_id=? AND (is_hidden_by_customer IS NULL OR is_hidden_by_customer=0)', [req.user.id], (e, c) => {
                 res.json({ success: true, data: rows, total: c?c[0].total:0, page, limit });
             });
         });
@@ -654,17 +724,87 @@ app.get('/api/orders/:order_id/detail', authenticate, requireRole('customer'), (
 });
 
 app.post('/api/orders/:order_id/cancel', authenticate, requireRole('customer'), (req, res) => {
-    db.query('SELECT id,order_status,user_id FROM orders WHERE id=?', [req.params.order_id], (err, rows) => {
+    db.query('SELECT * FROM orders WHERE id=?', [req.params.order_id], (err, rows) => {
         if (err || !rows.length) return res.json({ success: false, message: 'Order not found.' });
         const o = rows[0];
         if (o.user_id !== req.user.id) return res.status(403).json({ success: false, message: 'Unauthorized.' });
         if (!['pending','confirmed'].includes(o.order_status))
             return res.json({ success: false, message: 'Cannot cancel order at this stage.' });
-        db.query('UPDATE orders SET order_status="cancelled",updated_at=NOW() WHERE id=?',
-            [req.params.order_id], err2 => {
+
+        const wasPaid = o.payment_status === 'paid';
+        const newPayStatus = wasPaid ? 'refunded' : o.payment_status;
+
+        db.query('UPDATE orders SET order_status="cancelled",payment_status=?,updated_at=NOW() WHERE id=?',
+            [newPayStatus, req.params.order_id], err2 => {
                 if (err2) return res.json({ success: false, message: 'Cancel failed.' });
-                res.json({ success: true, message: 'Order cancelled.' });
+
+                // Auto-create refund record if the order was paid
+                if (wasPaid) {
+                    db.query('SELECT * FROM payments WHERE order_id=? AND status="completed" ORDER BY created_at DESC LIMIT 1',
+                        [req.params.order_id], (ep, pays) => {
+                            const pay = pays && pays.length ? pays[0] : null;
+                            const rfRef = rfndRef();
+                            db.query(`INSERT INTO refunds (refund_ref,payment_id,order_id,user_id,amount,method,status,reason,reason_detail,initiated_by,initiated_role)
+                                      VALUES (?,?,?,?,?,?,'pending','order_cancelled','Customer cancelled order',?,?)`,
+                                [rfRef, pay ? pay.id : null, req.params.order_id, o.user_id, o.total,
+                                 o.payment_method === 'wallet' ? 'wallet' : 'original',
+                                 o.user_id, 'system'], () => {});
+                            if (pay) db.query('UPDATE payments SET status="refunded",refunded_at=NOW(),refund_reason="Customer cancelled order" WHERE id=?', [pay.id], () => {});
+                            recordTransaction({ type:'refund', direction:'outflow', user_id:o.user_id, order_id:o.id, payment_id:pay?pay.id:null, amount:o.total, currency:'ETB', method:o.payment_method, status:'pending', description:'Auto-refund: customer cancelled order #'+o.id });
+                            console.log('[AUTO-REFUND] Created:', rfRef, 'for order', o.id, '— customer cancel');
+                        });
+                }
+
+                res.json({ success: true, message: wasPaid ? 'Order cancelled. A refund has been initiated automatically.' : 'Order cancelled.' });
             });
+    });
+});
+
+// DELETE order
+// Customer: soft-delete (hide from history) — only cancelled/failed/refunded orders
+// Admin: hard-delete — only non-paid, non-active orders; requires audit log
+app.delete('/api/orders/:order_id', authenticate, (req, res) => {
+    const role = req.user.role;
+    db.query('SELECT id,order_status,payment_status,user_id FROM orders WHERE id=?', [req.params.order_id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'Order not found.' });
+        const o = rows[0];
+
+        // ── CUSTOMER: soft delete (hide from history) ──────────────────────────
+        if (role === 'customer') {
+            if (o.user_id !== req.user.id)
+                return res.status(403).json({ success: false, message: 'Unauthorized.' });
+            // Only allow hiding cancelled / failed / refunded orders
+            // Delivered orders stay visible (financial + support record)
+            const hideable = ['cancelled', 'failed', 'failed_delivery', 'refunded'];
+            if (!hideable.includes(o.order_status))
+                return res.json({ success: false, message: 'Only cancelled or failed orders can be removed from your history.' });
+            db.query('UPDATE orders SET is_hidden_by_customer=1 WHERE id=?', [req.params.order_id], (e2) => {
+                if (e2) return res.json({ success: false, message: 'Could not hide order: ' + e2.message });
+                console.log('Order hidden by customer:', req.params.order_id, req.user.email);
+                res.json({ success: true, message: 'Order removed from your history.' });
+            });
+            return;
+        }
+
+        // ── ADMIN: soft delete ─────────────────────────────────────────────────
+        if (role === 'admin') {
+            // Never soft-delete orders currently in active delivery
+            const blocked = ['out_for_delivery', 'picked_up', 'assigned_to_rider', 'preparing', 'confirmed'];
+            if (blocked.includes(o.order_status))
+                return res.json({ success: false, message: 'Cannot delete an active order. Cancel it first.' });
+            // Never delete paid orders — financial records must be kept
+            if (o.payment_status === 'paid')
+                return res.json({ success: false, message: 'Paid orders cannot be deleted. Use refund/void instead.' });
+            db.query('UPDATE orders SET is_deleted=1, deleted_at=NOW(), deleted_by=? WHERE id=?',
+                [req.user.id, req.params.order_id], (e2) => {
+                    if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+                    logDelete(req.user.id, req.user.email, 'orders', req.params.order_id, 'Order #'+req.params.order_id+' ('+o.order_status+')', req.body && req.body.reason);
+                    res.json({ success: true, message: 'Order soft-deleted. It can be restored from the Delete Logs.' });
+                });
+            return;
+        }
+
+        return res.status(403).json({ success: false, message: 'Not authorized to delete orders.' });
     });
 });
 
@@ -766,16 +906,18 @@ app.post('/api/reviews', authenticate, requireRole('customer'), (req, res) => {
     const { order_id, restaurant_id, rating, comment } = req.body;
     if (!rating || rating < 1 || rating > 5) return res.json({ success: false, message: 'Rating must be 1-5.' });
     if (!order_id) return res.json({ success: false, message: 'order_id required.' });
-    db.query('SELECT id FROM orders WHERE id=? AND user_id=? AND order_status="delivered"',
+    db.query('SELECT id,restaurant_id FROM orders WHERE id=? AND user_id=? AND order_status="delivered"',
         [order_id, req.user.id], (err, rows) => {
             if (err || !rows.length) return res.json({ success: false, message: 'Order not found or not delivered.' });
+            // Use restaurant_id from order if not provided in body
+            const restId = restaurant_id || rows[0].restaurant_id || null;
             db.query('INSERT INTO reviews (user_id,order_id,restaurant_id,rating,comment) VALUES (?,?,?,?,?)',
-                [req.user.id, order_id, restaurant_id||null, rating, comment||null],
+                [req.user.id, order_id, restId, rating, comment||null],
                 (e, r) => {
                     if (e) return res.json({ success: false, message: 'Already reviewed or DB error.' });
-                    if (restaurant_id) {
+                    if (restId) {
                         db.query('UPDATE restaurants SET rating=(SELECT AVG(rating) FROM reviews WHERE restaurant_id=?) WHERE id=?',
-                            [restaurant_id, restaurant_id], () => {});
+                            [restId, restId], () => {});
                     }
                     res.json({ success: true, message: 'Review submitted!', review_id: r.insertId });
                 });
@@ -1092,16 +1234,26 @@ app.get('/api/payments/page-data/:order_id', authenticate, requireRole('customer
     });
 });
 
-// Customer payment history
+// Customer payment history — auto-creates missing payment records for paid orders
 app.get('/api/payments', authenticate, requireRole('customer'), (req, res) => {
-    db.query(`SELECT p.*,o.order_status,
-              (SELECT COUNT(*) FROM transactions t WHERE t.payment_id=p.id) AS txn_count
-              FROM payments p LEFT JOIN orders o ON o.id=p.order_id
-              WHERE p.user_id=? ORDER BY p.created_at DESC`,
-        [req.user.id], (err, rows) => {
-            if (err) return res.json({ success: false, message: 'DB error.' });
-            res.json({ success: true, data: rows });
-        });
+    // Auto-create payment records for any paid orders that are missing one
+    db.query(
+        `INSERT IGNORE INTO payments (payment_ref,order_id,user_id,amount,currency,method,status,verified_at,created_at,updated_at)
+         SELECT CONCAT('PAY-AUTO-',o.id), o.id, o.user_id, o.total, 'ETB', o.payment_method, 'completed', o.updated_at, o.created_at, o.updated_at
+         FROM orders o LEFT JOIN payments p ON p.order_id=o.id
+         WHERE o.payment_status='paid' AND o.user_id=? AND p.id IS NULL`,
+        [req.user.id], () => {
+            // Now fetch all payment records
+            db.query(`SELECT p.*, o.order_status,
+                      (SELECT COUNT(*) FROM transactions t WHERE t.payment_id=p.id) AS txn_count
+                      FROM payments p LEFT JOIN orders o ON o.id=p.order_id
+                      WHERE p.user_id=? ORDER BY p.created_at DESC`,
+                [req.user.id], (err, rows) => {
+                    if (err) return res.json({ success: false, message: 'DB error.' });
+                    res.json({ success: true, data: rows });
+                });
+        }
+    );
 });
 
 // Legacy payment record
@@ -1294,6 +1446,27 @@ app.patch('/api/orders/:order_id/status', authenticate, (req, res) => {
         if (order_status === 'confirmed') extra = ', payment_status=IF(payment_method!="cash","paid",payment_status)';
         db.query('UPDATE orders SET order_status=?'+extra+',updated_at=NOW() WHERE id=?', [order_status, req.params.order_id], (e2) => {
             if (e2) return res.json({ success: false, message: 'Update failed.' });
+
+            // Auto-create refund record when a paid order is cancelled or rejected
+            if ((order_status === 'cancelled' || order_status === 'rejected') && order.payment_status === 'paid') {
+                db.query('SELECT * FROM payments WHERE order_id=? AND status="completed" ORDER BY created_at DESC LIMIT 1',
+                    [req.params.order_id], (ep, pays) => {
+                        const pay = pays && pays.length ? pays[0] : null;
+                        const rfRef = rfndRef();
+                        const reasonDetail = order_status === 'rejected'
+                            ? 'Order rejected by ' + role
+                            : 'Order cancelled by ' + role;
+                        db.query(`INSERT INTO refunds (refund_ref,payment_id,order_id,user_id,amount,method,status,reason,reason_detail,initiated_by,initiated_role)
+                                  VALUES (?,?,?,?,?,?,'pending','order_cancelled',?,?,?)`,
+                            [rfRef, pay ? pay.id : null, req.params.order_id, order.user_id, order.total,
+                             order.payment_method === 'wallet' ? 'wallet' : 'original',
+                             reasonDetail, req.user.id, role], () => {});
+                        if (pay) db.query('UPDATE payments SET status="refunded",refunded_at=NOW(),refund_reason=? WHERE id=?', [reasonDetail, pay.id], () => {});
+                        recordTransaction({ type:'refund', direction:'outflow', user_id:order.user_id, order_id:order.id, payment_id:pay?pay.id:null, amount:order.total, currency:'ETB', method:order.payment_method, status:'pending', description:'Auto-refund: '+reasonDetail });
+                        console.log('[AUTO-REFUND] Created:', rfRef, 'for order', order.id, '—', reasonDetail);
+                    });
+            }
+
             res.json({ success: true, message: 'Order status updated to '+order_status, order_id: req.params.order_id, order_status });
         });
     });
@@ -1426,7 +1599,7 @@ app.get('/api/admin/revenue', authenticate, requireRole('admin'), (req, res) => 
 
 app.get('/api/admin/users', authenticate, requireRole('admin'), (req, res) => {
     const { role, status, search } = req.query;
-    let sql = 'SELECT u.id,u.name,u.email,u.phone,u.role,u.status,u.created_at,rd.approval_status,rd.vehicle_type,rd.vehicle_number FROM users u LEFT JOIN rider_details rd ON rd.user_id=u.id WHERE 1=1';
+    let sql = 'SELECT u.id,u.name,u.email,u.phone,u.role,u.status,u.created_at,rd.approval_status,rd.vehicle_type,rd.vehicle_number FROM users u LEFT JOIN rider_details rd ON rd.user_id=u.id WHERE u.status != "deleted"';
     const p = [];
     if (role)   { sql += ' AND u.role=?';   p.push(role); }
     if (status) { sql += ' AND u.status=?'; p.push(status); }
@@ -1448,9 +1621,11 @@ app.patch('/api/admin/users/:id/status', authenticate, requireRole('admin'), (re
 });
 
 app.get('/api/admin/orders', authenticate, requireRole('admin'), (req, res) => {
-    const { status, payment_status, from, to, search } = req.query;
+    const { status, payment_status, from, to, search, show_deleted } = req.query;
     let sql = 'SELECT o.*,u.name AS customer_name,u2.name AS rider_name,r.name AS restaurant_name FROM orders o LEFT JOIN users u ON u.id=o.user_id LEFT JOIN users u2 ON u2.id=o.rider_id LEFT JOIN restaurants r ON r.id=o.restaurant_id WHERE 1=1';
     const p = [];
+    // By default hide soft-deleted orders; pass show_deleted=1 to include them
+    if (show_deleted !== '1') { sql += ' AND (o.is_deleted IS NULL OR o.is_deleted=0)'; }
     if (status)         { sql += ' AND o.order_status=?';   p.push(status); }
     if (payment_status) { sql += ' AND o.payment_status=?'; p.push(payment_status); }
     if (from)           { sql += ' AND DATE(o.created_at)>=?'; p.push(from); }
@@ -1496,7 +1671,11 @@ app.patch('/api/admin/orders/:id/assign-rider', authenticate, requireRole('admin
 });
 
 app.get('/api/admin/restaurants', authenticate, requireRole('admin'), (req, res) => {
-    db.query('SELECT r.*,u.name AS owner_name FROM restaurants r LEFT JOIN users u ON u.id=r.owner_id ORDER BY r.created_at DESC', (err, rows) => {
+    const { show_deleted } = req.query;
+    let sql = 'SELECT r.*,u.name AS owner_name FROM restaurants r LEFT JOIN users u ON u.id=r.owner_id WHERE 1=1';
+    if (show_deleted !== '1') sql += ' AND (r.is_deleted IS NULL OR r.is_deleted=0)';
+    sql += ' ORDER BY r.created_at DESC';
+    db.query(sql, (err, rows) => {
         if (err) return res.json({ success: false, message: 'DB error.' });
         res.json({ success: true, data: rows });
     });
@@ -1531,16 +1710,27 @@ app.patch('/api/admin/restaurants/:id', authenticate, requireRole('admin'), (req
 });
 
 app.delete('/api/admin/restaurants/:id', authenticate, requireRole('admin'), (req, res) => {
-    db.query('DELETE FROM restaurants WHERE id=?', [req.params.id], err => {
-        if (err) return res.json({ success: false, message: 'Delete failed.' });
-        res.json({ success: true, message: 'Restaurant deleted.' });
+    const { reason } = req.body || {};
+    db.query('SELECT id,name FROM restaurants WHERE id=? AND is_deleted=0', [req.params.id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'Restaurant not found.' });
+        const r = rows[0];
+        db.query('UPDATE restaurants SET is_deleted=1, deleted_at=NOW(), deleted_by=?, status="inactive" WHERE id=?',
+            [req.user.id, r.id], e2 => {
+                if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+                // Also soft-delete all menu items belonging to this restaurant
+                db.query('UPDATE menu_items SET is_deleted=1, deleted_at=NOW(), deleted_by=? WHERE restaurant_id=? AND is_deleted=0',
+                    [req.user.id, r.id], () => {});
+                logDelete(req.user.id, req.user.email, 'restaurants', r.id, r.name, reason);
+                res.json({ success: true, message: 'Restaurant soft-deleted. It can be restored from Delete Logs.' });
+            });
     });
 });
 
 app.get('/api/admin/menu-items', authenticate, requireRole('admin'), (req, res) => {
-    const { restaurant_id } = req.query;
+    const { restaurant_id, show_deleted } = req.query;
     let sql = 'SELECT m.*,r.name AS restaurant_name FROM menu_items m LEFT JOIN restaurants r ON r.id=m.restaurant_id WHERE 1=1';
     const p = [];
+    if (show_deleted !== '1') sql += ' AND (m.is_deleted IS NULL OR m.is_deleted=0)';
     if (restaurant_id) { sql += ' AND m.restaurant_id=?'; p.push(restaurant_id); }
     sql += ' ORDER BY r.name,m.category,m.name';
     db.query(sql, p, (err, rows) => {
@@ -1577,9 +1767,16 @@ app.patch('/api/admin/menu-items/:id', authenticate, requireRole('admin'), (req,
 });
 
 app.delete('/api/admin/menu-items/:id', authenticate, requireRole('admin'), (req, res) => {
-    db.query('DELETE FROM menu_items WHERE id=?', [req.params.id], err => {
-        if (err) return res.json({ success: false, message: 'Delete failed.' });
-        res.json({ success: true, message: 'Menu item deleted.' });
+    const { reason } = req.body || {};
+    db.query('SELECT id,name,restaurant_id FROM menu_items WHERE id=? AND is_deleted=0', [req.params.id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'Menu item not found.' });
+        const m = rows[0];
+        db.query('UPDATE menu_items SET is_deleted=1, deleted_at=NOW(), deleted_by=?, available=0 WHERE id=?',
+            [req.user.id, m.id], e2 => {
+                if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+                logDelete(req.user.id, req.user.email, 'menu_items', m.id, m.name, reason);
+                res.json({ success: true, message: 'Menu item soft-deleted. It can be restored from Delete Logs.' });
+            });
     });
 });
 
@@ -1633,16 +1830,141 @@ app.get('/api/admin/payments', authenticate, requireRole('admin'), (req, res) =>
 });
 
 app.get('/api/admin/reviews', authenticate, requireRole('admin'), (req, res) => {
-    db.query('SELECT rv.*,u.name AS customer_name,rs.name AS restaurant_name FROM reviews rv LEFT JOIN users u ON u.id=rv.user_id LEFT JOIN restaurants rs ON rs.id=rv.restaurant_id ORDER BY rv.created_at DESC', (err, rows) => {
+    const { show_deleted } = req.query;
+    let sql = 'SELECT rv.*,u.name AS customer_name,rs.name AS restaurant_name FROM reviews rv LEFT JOIN users u ON u.id=rv.user_id LEFT JOIN restaurants rs ON rs.id=rv.restaurant_id WHERE 1=1';
+    if (show_deleted !== '1') sql += ' AND (rv.is_deleted IS NULL OR rv.is_deleted=0)';
+    sql += ' ORDER BY rv.created_at DESC';
+    db.query(sql, (err, rows) => {
         if (err) return res.json({ success: false, message: 'DB error.' });
         res.json({ success: true, data: rows });
     });
 });
 
 app.delete('/api/admin/reviews/:id', authenticate, requireRole('admin'), (req, res) => {
-    db.query('DELETE FROM reviews WHERE id=?', [req.params.id], err => {
-        if (err) return res.json({ success: false, message: 'Delete failed.' });
-        res.json({ success: true, message: 'Review deleted.' });
+    const { reason } = req.body || {};
+    db.query('SELECT rv.id,u.name AS customer_name,rs.name AS restaurant_name FROM reviews rv LEFT JOIN users u ON u.id=rv.user_id LEFT JOIN restaurants rs ON rs.id=rv.restaurant_id WHERE rv.id=? AND rv.is_deleted=0', [req.params.id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'Review not found.' });
+        const rv = rows[0];
+        db.query('UPDATE reviews SET is_deleted=1, deleted_at=NOW(), deleted_by=? WHERE id=?',
+            [req.user.id, rv.id], e2 => {
+                if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+                logDelete(req.user.id, req.user.email, 'reviews', rv.id, 'By '+rv.customer_name+' for '+rv.restaurant_name, reason);
+                res.json({ success: true, message: 'Review soft-deleted. It can be restored from Delete Logs.' });
+            });
+    });
+});
+
+// ============================================================
+//  ADMIN DELETE ENDPOINTS — full audit logging on every delete
+// ============================================================
+
+// Helper: write an immutable delete log entry
+function logDelete(admin_id, admin_email, table_name, record_id, record_label, reason) {
+    db.query(
+        'INSERT INTO delete_logs (admin_id,admin_email,table_name,record_id,record_label,reason) VALUES (?,?,?,?,?,?)',
+        [admin_id, admin_email, table_name, String(record_id), record_label||null, reason||null],
+        () => {}
+    );
+    console.log(`[DELETE-LOG] Admin #${admin_id} (${admin_email}) deleted ${table_name} #${record_id} — ${record_label||''} at ${new Date().toISOString()}`);
+}
+
+// DELETE user (customer or rider) — soft delete: sets status=deleted, never removes row
+app.delete('/api/admin/users/:id', authenticate, requireRole('admin'), (req, res) => {
+    const { reason } = req.body || {};
+    db.query('SELECT id,name,email,role FROM users WHERE id=?', [req.params.id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'User not found.' });
+        const u = rows[0];
+        if (u.role === 'admin')
+            return res.status(403).json({ success: false, message: 'Admin accounts cannot be deleted.' });
+        // Soft delete: mark as deleted, anonymise PII
+        db.query(
+            "UPDATE users SET status='deleted', name=CONCAT('[Deleted] ',id), email=CONCAT('deleted_',id,'@removed.local'), phone=NULL, address=NULL WHERE id=?",
+            [req.params.id], (e2) => {
+                if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+                logDelete(req.user.id, req.user.email, 'users', u.id, u.name+' ('+u.role+')', reason);
+                res.json({ success: true, message: u.role === 'rider' ? 'Rider account deleted.' : 'Customer account deleted.' });
+            }
+        );
+    });
+});
+
+// DELETE payment record — soft delete only (financial records must be preserved)
+app.delete('/api/admin/payments/:id', authenticate, requireRole('admin'), (req, res) => {
+    const { reason } = req.body || {};
+    db.query('SELECT id,payment_ref,order_id,amount,status FROM payments WHERE id=?', [req.params.id], (err, rows) => {
+        if (err || !rows.length) return res.json({ success: false, message: 'Payment not found.' });
+        const p = rows[0];
+        if (p.status === 'completed')
+            return res.json({ success: false, message: 'Completed payments cannot be deleted. Use refund instead.' });
+        // Soft delete: mark as cancelled
+        db.query("UPDATE payments SET status='cancelled',updated_at=NOW() WHERE id=?", [p.id], (e2) => {
+            if (e2) return res.json({ success: false, message: 'Delete failed: ' + e2.message });
+            logDelete(req.user.id, req.user.email, 'payments', p.id, 'Ref:'+p.payment_ref+' Order:'+p.order_id+' ETB '+p.amount, reason);
+            res.json({ success: true, message: 'Payment record voided.' });
+        });
+    });
+});
+
+// GET delete logs — admin audit trail
+app.get('/api/admin/delete-logs', authenticate, requireRole('admin'), (req, res) => {
+    const { table_name, from, to } = req.query;
+    let sql = 'SELECT * FROM delete_logs WHERE 1=1';
+    const p = [];
+    if (table_name) { sql += ' AND table_name=?'; p.push(table_name); }
+    if (from)       { sql += ' AND DATE(deleted_at)>=?'; p.push(from); }
+    if (to)         { sql += ' AND DATE(deleted_at)<=?'; p.push(to); }
+    sql += ' ORDER BY deleted_at DESC LIMIT 500';
+    db.query(sql, p, (err, rows) => {
+        if (err) return res.json({ success: false, message: 'DB error.' });
+        res.json({ success: true, data: rows, count: rows.length });
+    });
+});
+
+// ============================================================
+//  RESTORE ENDPOINTS — undo a soft delete
+// ============================================================
+
+app.patch('/api/admin/orders/:id/restore', authenticate, requireRole('admin'), (req, res) => {
+    db.query('UPDATE orders SET is_deleted=0, deleted_at=NULL, deleted_by=NULL WHERE id=?', [req.params.id], (err) => {
+        if (err) return res.json({ success: false, message: 'Restore failed: ' + err.message });
+        console.log('[RESTORE] Order', req.params.id, 'restored by admin', req.user.email);
+        res.json({ success: true, message: 'Order restored successfully.' });
+    });
+});
+
+app.patch('/api/admin/restaurants/:id/restore', authenticate, requireRole('admin'), (req, res) => {
+    db.query('UPDATE restaurants SET is_deleted=0, deleted_at=NULL, deleted_by=NULL, status="active" WHERE id=?', [req.params.id], (err) => {
+        if (err) return res.json({ success: false, message: 'Restore failed: ' + err.message });
+        // Also restore menu items that were soft-deleted at the same time
+        db.query('UPDATE menu_items SET is_deleted=0, deleted_at=NULL, deleted_by=NULL WHERE restaurant_id=? AND is_deleted=1', [req.params.id], () => {});
+        console.log('[RESTORE] Restaurant', req.params.id, 'restored by admin', req.user.email);
+        res.json({ success: true, message: 'Restaurant and its menu items restored.' });
+    });
+});
+
+app.patch('/api/admin/menu-items/:id/restore', authenticate, requireRole('admin'), (req, res) => {
+    db.query('UPDATE menu_items SET is_deleted=0, deleted_at=NULL, deleted_by=NULL, available=1 WHERE id=?', [req.params.id], (err) => {
+        if (err) return res.json({ success: false, message: 'Restore failed: ' + err.message });
+        console.log('[RESTORE] Menu item', req.params.id, 'restored by admin', req.user.email);
+        res.json({ success: true, message: 'Menu item restored.' });
+    });
+});
+
+app.patch('/api/admin/reviews/:id/restore', authenticate, requireRole('admin'), (req, res) => {
+    db.query('UPDATE reviews SET is_deleted=0, deleted_at=NULL, deleted_by=NULL WHERE id=?', [req.params.id], (err) => {
+        if (err) return res.json({ success: false, message: 'Restore failed: ' + err.message });
+        console.log('[RESTORE] Review', req.params.id, 'restored by admin', req.user.email);
+        res.json({ success: true, message: 'Review restored.' });
+    });
+});
+
+app.patch('/api/admin/users/:id/restore', authenticate, requireRole('admin'), (req, res) => {
+    // Note: PII was anonymised on delete — we can restore access but not original data
+    db.query("UPDATE users SET status='suspended' WHERE id=? AND status='deleted'", [req.params.id], (err, result) => {
+        if (err) return res.json({ success: false, message: 'Restore failed: ' + err.message });
+        if (!result.affectedRows) return res.json({ success: false, message: 'User not found or not deleted.' });
+        console.log('[RESTORE] User', req.params.id, 'restored by admin', req.user.email);
+        res.json({ success: true, message: 'User account restored (set to suspended). PII was anonymised and cannot be recovered.' });
     });
 });
 
@@ -1786,7 +2108,9 @@ app.post('/api/admin/refunds', authenticate, requireRole('admin'), (req, res) =>
 });
 
 app.get('/api/refunds', authenticate, requireRole('customer'), (req, res) => {
-    db.query(`SELECT r.*,o.total AS order_total FROM refunds r
+    db.query(`SELECT r.*,o.total AS order_total,o.payment_method AS order_payment_method,
+              o.order_status,o.items,o.created_at AS order_date
+              FROM refunds r
               LEFT JOIN orders o ON o.id=r.order_id
               WHERE r.user_id=? ORDER BY r.created_at DESC`, [req.user.id], (err, rows) => {
         if (err) return res.json({ success: false, message: 'DB error.' });

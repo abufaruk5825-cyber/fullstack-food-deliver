@@ -186,7 +186,17 @@ tr:hover td{background:#fafbff}
     <!-- REFUNDS -->
     <div id="section-refunds" class="section">
       <div class="card">
-        <div class="card-header"><h2><i class="fas fa-undo"></i> My Refunds</h2></div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-undo"></i> My Refunds</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadCustomerRefunds()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <!-- Refund status info banner -->
+        <div style="padding:10px 18px;background:#fff8e1;border-bottom:1px solid #ffe082;font-size:.78rem;color:#795548;line-height:1.6">
+          <i class="fas fa-info-circle" style="color:#f9a825"></i>
+          <strong>How refunds work:</strong>
+          Refunds are processed within <strong>3–7 business days</strong> depending on your payment method.
+          <em>Pending</em> = initiated &nbsp;|&nbsp; <em>Processing</em> = being transferred &nbsp;|&nbsp; <em>Completed</em> = money returned &nbsp;|&nbsp; <em>Failed</em> = contact support.
+        </div>
         <div class="card-body" id="refunds-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
       </div>
     </div>
@@ -254,6 +264,7 @@ tr:hover td{background:#fafbff}
   <div class="modal">
     <h3><i class="fas fa-star"></i> Leave a Review</h3>
     <input type="hidden" id="rv-order-id">
+    <input type="hidden" id="rv-restaurant-id">
     <div class="form-group">
       <label>Rating</label>
       <div class="star-rating" id="star-rating">
@@ -378,6 +389,9 @@ async function loadOrders(page=1){
         const canCancel=['pending','confirmed'].includes(st);
         const canReorder=st==='delivered';
         const canReview=st==='delivered'&&!reviewedOrders.has(o.id);
+        // Soft-delete (hide from history): only cancelled/failed/refunded
+        // Delivered orders stay visible — they are financial records
+        const canHide=['cancelled','failed','failed_delivery','refunded'].includes(st);
         return `<tr>
           <td>#${o.id}</td><td>${fmt(o.total)}</td><td>${o.payment_method||'-'}</td>
           <td>${badge(o.order_status)}</td><td>${badge(o.payment_status)}</td>
@@ -386,7 +400,8 @@ async function loadOrders(page=1){
             <button class="btn btn-primary btn-sm" onclick="goTrack('${o.id}')"><i class="fas fa-map-marker-alt"></i> Track</button>
             ${canCancel?'<button class="btn btn-danger btn-sm" onclick="cancelOrder(\''+o.id+'\')"><i class="fas fa-times"></i> Cancel</button>':''}
             ${canReorder?'<button class="btn btn-warning btn-sm" onclick="reorder(\''+o.id+'\')"><i class="fas fa-redo"></i> Reorder</button>':''}
-            ${canReview?'<button class="btn btn-orange btn-sm" onclick="openReview(\''+o.id+'\')"><i class="fas fa-star"></i> Review</button>':''}
+            ${canReview?'<button class="btn btn-orange btn-sm" onclick="openReview(\''+o.id+'\',\''+o.restaurant_id+'\')"><i class="fas fa-star"></i> Review</button>':''}
+            ${canHide?'<button class="btn btn-sm" style="background:#f5f5f5;color:#757575;border:1px solid #e0e0e0" onclick="hideOrder(\''+o.id+'\')"><i class="fas fa-eye-slash"></i> Hide</button>':''}
             ${st==='delivered'&&reviewedOrders.has(o.id)?'<span style="color:#27ae60;font-size:.72rem"><i class="fas fa-check-circle"></i> Reviewed</span>':''}
           </div></td>
         </tr>`;
@@ -408,6 +423,15 @@ async function cancelOrder(id){
   try{
     const d=await api('/api/orders/'+id+'/cancel',{method:'POST'});
     toast(d.message||'Cancelled',d.success?'success':'error');
+    if(d.success)loadOrders(currentPage);
+  }catch(e){toast(e.message,'error');}
+}
+
+async function hideOrder(id){
+  if(!confirm('Hide this order from your history?\n\nIt will no longer appear in your order list. This cannot be undone.'))return;
+  try{
+    const d=await api('/api/orders/'+id,{method:'DELETE'});
+    toast(d.message||'Order hidden',d.success?'success':'error');
     if(d.success)loadOrders(currentPage);
   }catch(e){toast(e.message,'error');}
 }
@@ -501,8 +525,9 @@ async function loadReviews(){
   }catch(e){document.getElementById('reviews-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
-function openReview(orderId){
+function openReview(orderId, restaurantId){
   document.getElementById('rv-order-id').value=orderId;
+  document.getElementById('rv-restaurant-id').value=restaurantId||'';
   document.getElementById('rv-comment').value='';
   document.getElementById('rv-msg').innerHTML='';
   selectedRating=0;updateStars(0);
@@ -520,15 +545,17 @@ document.querySelectorAll('#star-rating i').forEach(s=>{
 });
 async function submitReview(){
   const orderId=document.getElementById('rv-order-id').value;
+  const restaurantId=document.getElementById('rv-restaurant-id').value;
   const comment=document.getElementById('rv-comment').value.trim();
   const msg=document.getElementById('rv-msg');
   if(!selectedRating){msg.innerHTML='<div class="error-msg">Please select a rating.</div>';return;}
   try{
-    const d=await api('/api/reviews',{method:'POST',body:JSON.stringify({order_id:orderId,rating:selectedRating,comment})});
+    const d=await api('/api/reviews',{method:'POST',body:JSON.stringify({order_id:orderId,restaurant_id:restaurantId||null,rating:selectedRating,comment})});
     if(!d.success)throw new Error(d.message);
     toast('Review submitted!','success');
     closeModal('review-modal');
     loadOrders(currentPage);
+    loadReviews();
   }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
@@ -539,18 +566,33 @@ async function loadPayments(){
     const d=await api('/api/payments');
     const payments=d.data||[];
     if(!payments.length){document.getElementById('payments-wrap').innerHTML='<div class="empty-state"><i class="fas fa-credit-card"></i>No payment records yet</div>';return;}
-    const total=payments.filter(p=>p.status==='completed').reduce((s,p)=>s+parseFloat(p.amount||0),0);
-    document.getElementById('payments-wrap').innerHTML=
-      '<div style="padding:12px 18px;background:#e8f5e9;color:#2e7d32;font-size:.82rem;border-bottom:1px solid #f0f0f0"><i class="fas fa-coins"></i> Total Paid: <strong>ETB '+total.toFixed(2)+'</strong></div>'+
+
+    // Only count completed (not refunded) payments
+    const totalPaid    = payments.filter(p=>p.status==='completed').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+    const totalRefunded= payments.filter(p=>p.status==='refunded').reduce((s,p)=>s+parseFloat(p.amount||0),0);
+    const netPaid      = totalPaid - totalRefunded;
+
+    const summary =
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #f0f0f0">'+
+        '<div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-coins"></i> Total Paid: <strong>ETB '+totalPaid.toFixed(2)+'</strong></div>'+
+        (totalRefunded>0?'<div style="background:#ffebee;color:#c62828;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-undo"></i> Refunded: <strong>ETB '+totalRefunded.toFixed(2)+'</strong></div>':'') +
+        (totalRefunded>0?'<div style="background:#e3f2fd;color:#1565c0;padding:8px 14px;border-radius:8px;font-size:.8rem"><i class="fas fa-balance-scale"></i> Net Paid: <strong>ETB '+netPaid.toFixed(2)+'</strong></div>':'') +
+      '</div>';
+
+    document.getElementById('payments-wrap').innerHTML=summary+
       '<table><thead><tr><th>ID</th><th>Order ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Reference</th><th>Date</th></tr></thead><tbody>'+
-      payments.map(p=>`<tr>
-        <td>#${p.id}</td><td>#${p.order_id||'-'}</td><td>${fmt(p.amount)}</td>
-        <td>${p.method||'-'}</td><td>${badge(p.status)}</td>
-        <td>${p.reference||'-'}</td><td>${fmtDate(p.created_at)}</td>
-      </tr>`).join('')+'</tbody></table>';
+      payments.map(p=>'<tr>'+
+        '<td>#'+(p.id||'-')+'</td>'+
+        '<td>#'+(p.order_id||'-')+'</td>'+
+        '<td style="font-weight:600;color:'+(p.status==='refunded'?'#e74c3c':'#27ae60')+'">'+
+          (p.status==='refunded'?'-':'')+'ETB '+parseFloat(p.amount||0).toFixed(2)+'</td>'+
+        '<td>'+(p.method||'-')+'</td>'+
+        '<td>'+badge(p.status)+'</td>'+
+        '<td style="font-size:.75rem">'+(p.payment_ref||p.reference||'-')+'</td>'+
+        '<td>'+fmtDate(p.created_at)+'</td>'+
+      '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('payments-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
-
 // PROFILE
 async function updateProfile(){
   const name=document.getElementById('prof-name').value.trim();
@@ -606,17 +648,46 @@ async function loadCustomerRefunds(){
   try{
     const d=await api('/api/refunds');
     const refunds=d.data||[];
-    if(!refunds.length){document.getElementById('refunds-wrap').innerHTML='<div class="empty-state"><i class="fas fa-undo"></i>No refunds yet</div>';return;}
-    document.getElementById('refunds-wrap').innerHTML='<table><thead><tr><th>Ref</th><th>Order</th><th>Amount</th><th>Method</th><th>Reason</th><th>Status</th><th>Date</th></tr></thead><tbody>'+
-      refunds.map(r=>'<tr>'+
-        '<td style="font-size:.72rem">'+r.refund_ref+'</td>'+
-        '<td>#'+(r.order_id||'-')+'</td>'+
-        '<td style="font-weight:600;color:#e74c3c">ETB '+parseFloat(r.amount||0).toFixed(2)+'</td>'+
-        '<td>'+(r.method||'-')+'</td>'+
-        '<td style="font-size:.75rem">'+(r.reason||'-').replace(/_/g,' ')+'</td>'+
-        '<td>'+badge(r.status)+'</td>'+
-        '<td>'+fmtDate(r.created_at)+'</td>'+
-      '</tr>').join('')+'</tbody></table>';
+    if(!refunds.length){
+      document.getElementById('refunds-wrap').innerHTML=
+        '<div class="empty-state"><i class="fas fa-undo"></i><p>No refunds yet</p>'+
+        '<p style="font-size:.8rem;color:#999">Refunds appear here when an order is cancelled or a payment issue occurs.</p></div>';
+      return;
+    }
+    const totalPending=refunds.filter(r=>r.status==='pending'||r.status==='processing').length;
+    const totalCompleted=refunds.filter(r=>r.status==='completed').reduce((s,r)=>s+parseFloat(r.amount||0),0);
+    const summary=totalPending>0
+      ? '<div style="background:#fff3e0;color:#e65100;padding:10px 16px;border-radius:8px;margin:12px 16px;font-size:.82rem"><i class="fas fa-clock"></i> You have <strong>'+totalPending+'</strong> refund(s) in progress.</div>'
+      : (totalCompleted>0?'<div style="background:#e8f5e9;color:#2e7d32;padding:10px 16px;border-radius:8px;margin:12px 16px;font-size:.82rem"><i class="fas fa-check-circle"></i> <strong>ETB '+totalCompleted.toFixed(2)+'</strong> has been refunded to you.</div>':'');
+
+    // Status step indicator helper
+    const steps=['pending','processing','completed'];
+    function refundTimeline(status){
+      if(status==='failed') return '<span style="color:#c62828;font-size:.72rem"><i class="fas fa-times-circle"></i> Failed — contact support</span>';
+      return '<div style="display:flex;align-items:center;gap:4px;font-size:.7rem">'+
+        steps.map((s,i)=>{
+          const done=steps.indexOf(status)>=i;
+          const active=status===s;
+          return '<span style="color:'+(done?'#27ae60':'#ccc')+';font-weight:'+(active?'700':'400')+'">'+
+            '<i class="fas fa-'+(done?'check-circle':'circle')+'" style="font-size:.65rem"></i> '+s+'</span>'+
+            (i<steps.length-1?'<span style="color:#ccc;font-size:.6rem">›</span>':'');
+        }).join('')+'</div>';
+    }
+
+    document.getElementById('refunds-wrap').innerHTML=summary+
+      '<table><thead><tr><th>Ref #</th><th>Order</th><th>Amount</th><th>Return Method</th><th>Reason</th><th>Progress</th><th>Date</th></tr></thead><tbody>'+
+      refunds.map(r=>{
+        const methodLabel={original:'Back to original',wallet:'Wallet credit',cash:'Cash'}[r.method]||r.method;
+        return '<tr>'+
+          '<td style="font-size:.7rem;font-family:monospace">'+r.refund_ref+'</td>'+
+          '<td><strong>#'+(r.order_id||'-')+'</strong>'+(r.order_date?'<br><span style="font-size:.7rem;color:#999">'+fmtDate(r.order_date)+'</span>':'')+'</td>'+
+          '<td style="font-weight:700;color:#e74c3c;font-size:.95rem">ETB '+parseFloat(r.amount||0).toFixed(2)+'</td>'+
+          '<td style="font-size:.78rem">'+methodLabel+'</td>'+
+          '<td style="font-size:.75rem">'+(r.reason||'-').replace(/_/g,' ')+(r.reason_detail?'<br><span style="color:#999">'+r.reason_detail+'</span>':'')+'</td>'+
+          '<td>'+refundTimeline(r.status)+'</td>'+
+          '<td style="font-size:.75rem">'+fmtDate(r.created_at)+(r.processed_at?'<br><span style="color:#27ae60;font-size:.7rem"><i class="fas fa-check"></i> '+fmtDate(r.processed_at)+'</span>':'')+'</td>'+
+        '</tr>';
+      }).join('')+'</tbody></table>';
   }catch(e){document.getElementById('refunds-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
@@ -664,5 +735,28 @@ async function topUpWallet(){
 // INIT
 loadDashStats();
 loadRecentOrders();
+
+// Handle redirect from order placement
+const urlP = new URLSearchParams(window.location.search);
+if (urlP.get('tab') === 'orders') {
+  showSection('orders');
+  document.querySelector('[data-section="orders"]').classList.add('active');
+  document.querySelector('[data-section="dashboard"]').classList.remove('active');
+  document.getElementById('section-dashboard').classList.remove('active');
+  document.getElementById('section-orders').classList.add('active');
+  document.getElementById('page-title').textContent = 'My Orders';
+  if (urlP.get('new') === '1') {
+    // Show success banner
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;padding:16px 22px;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:12px;font-size:.9rem;font-weight:500;box-shadow:0 4px 14px rgba(39,174,96,.3)';
+    banner.innerHTML = '<i class="fas fa-check-circle" style="font-size:1.4rem"></i><div><strong>Order Placed Successfully!</strong><br><span style="font-size:.8rem;opacity:.9">Your order is being processed. Track it below.</span></div>';
+    const content = document.getElementById('section-orders');
+    content.insertBefore(banner, content.firstChild);
+    setTimeout(() => banner.remove(), 6000);
+    // Clean URL
+    window.history.replaceState({}, '', 'customer-dashboard.html');
+  }
+  loadOrders(1);
+}
 </script>
 </body></html>

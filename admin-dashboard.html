@@ -123,6 +123,7 @@ tr:hover td{background:#fafbff}
     <div class="nav-item" data-section="reports"><i class="fas fa-chart-bar"></i> Reports</div>
     <div class="nav-item" data-section="disputes"><i class="fas fa-exclamation-triangle"></i> Disputes</div>
     <div class="nav-item" data-section="payconfig"><i class="fas fa-sliders-h"></i> Pay Config</div>
+    <div class="nav-item" data-section="delete-logs"><i class="fas fa-history"></i> Delete Logs</div>
   </nav>
   <div class="sidebar-footer"><button class="logout-btn" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
 </div>
@@ -225,7 +226,13 @@ tr:hover td{background:#fafbff}
       <div class="add-form">
         <h3><i class="fas fa-plus-circle"></i> Initiate Refund</h3>
         <div class="form-row">
-          <div class="form-group"><label>Order ID *</label><input id="rf-order-id" placeholder="e.g. ORD-1234567890"></div>
+          <div class="form-group" style="position:relative">
+            <label>Order ID *</label>
+            <div style="display:flex;gap:6px">
+              <input id="rf-order-id" placeholder="e.g. ORD-1234567890" style="flex:1" oninput="clearOrderPreview()">
+              <button class="btn btn-primary btn-sm" onclick="lookupOrderForRefund()" style="white-space:nowrap"><i class="fas fa-search"></i> Lookup</button>
+            </div>
+          </div>
           <div class="form-group"><label>Refund Method</label>
             <select id="rf-method" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-family:'Poppins',sans-serif;font-size:.8rem">
               <option value="original">Back to Original Method</option>
@@ -244,6 +251,8 @@ tr:hover td{background:#fafbff}
           </div>
           <div class="form-group"><label>Reason Detail *</label><input id="rf-reason" placeholder="Describe the reason..."></div>
         </div>
+        <!-- Order preview card shown after lookup -->
+        <div id="rf-order-preview" style="display:none;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:.82rem"></div>
         <div id="rf-msg"></div>
         <button class="btn btn-danger" onclick="initiateRefund()"><i class="fas fa-undo"></i> Initiate Refund</button>
       </div>
@@ -255,6 +264,17 @@ tr:hover td{background:#fafbff}
           <button class="btn btn-primary" onclick="loadRefunds()"><i class="fas fa-search"></i> Filter</button>
         </div>
         <div class="card-body" id="refunds-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
+
+    <!-- Refund Detail Modal -->
+    <div class="modal-overlay" id="refund-detail-modal">
+      <div class="modal" style="max-width:500px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="margin:0"><i class="fas fa-undo" style="color:#e74c3c"></i> Refund Detail</h3>
+          <button onclick="closeModal('refund-detail-modal')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#999">&times;</button>
+        </div>
+        <div id="refund-detail-body" style="font-size:.85rem;line-height:1.8"></div>
       </div>
     </div>
     <div id="section-reviews" class="section">
@@ -289,6 +309,35 @@ tr:hover td{background:#fafbff}
         <div class="card-body" id="payconfig-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
       </div>
     </div>
+
+    <!-- DELETE LOGS -->
+    <div id="section-delete-logs" class="section">
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h2><i class="fas fa-history" style="color:#e74c3c"></i> Delete Audit Logs</h2>
+          <button class="btn btn-primary btn-sm" onclick="loadDeleteLogs()"><i class="fas fa-sync"></i> Refresh</button>
+        </div>
+        <div style="padding:10px 18px;background:#fff8e1;border-bottom:1px solid #ffe082;font-size:.78rem;color:#795548">
+          <i class="fas fa-shield-alt" style="color:#f9a825"></i>
+          Immutable audit trail — every admin deletion is permanently recorded here.
+        </div>
+        <div class="filter-bar">
+          <select id="f-dl-table">
+            <option value="">All Tables</option>
+            <option value="orders">Orders</option>
+            <option value="restaurants">Restaurants</option>
+            <option value="menu_items">Menu Items</option>
+            <option value="users">Users</option>
+            <option value="payments">Payments</option>
+            <option value="reviews">Reviews</option>
+          </select>
+          <input type="date" id="f-dl-from">
+          <input type="date" id="f-dl-to">
+          <button class="btn btn-primary" onclick="loadDeleteLogs()"><i class="fas fa-search"></i> Filter</button>
+        </div>
+        <div class="card-body" id="delete-logs-wrap"><div class="loading"><i class="fas fa-spinner"></i></div></div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="edit-rest-modal">
@@ -315,6 +364,26 @@ tr:hover td{background:#fafbff}
   </div>
 </div>
 <div class="toast-container" id="toast-container"></div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:420px;text-align:center">
+    <div id="confirm-icon" style="width:60px;height:60px;border-radius:50%;background:#ffebee;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#e74c3c;margin:0 auto 16px">
+      <i class="fas fa-trash"></i>
+    </div>
+    <h3 id="confirm-title" style="text-align:center;margin-bottom:8px">Delete Order?</h3>
+    <p id="confirm-msg" style="font-size:.85rem;color:#666;margin-bottom:12px;line-height:1.5"></p>
+    <div id="confirm-type-wrap" style="display:none;margin-bottom:16px">
+      <p style="font-size:.8rem;color:#c62828;margin-bottom:6px">Type <strong>DELETE</strong> to confirm:</p>
+      <input id="confirm-type-input" type="text" placeholder="DELETE" autocomplete="off"
+        style="width:100%;padding:8px 12px;border:1px solid #ffcdd2;border-radius:6px;font-size:.9rem;text-align:center;outline:none;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-primary" onclick="closeModal('confirm-modal')" style="min-width:100px"><i class="fas fa-times"></i> Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn" style="min-width:100px"><i class="fas fa-check"></i> Delete</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const API='http://localhost:3000';
@@ -359,12 +428,14 @@ function showSection(name){
     restaurants:'Restaurants',menu:'Menu Items',payments:'Payments',
     transactions:'Transactions Ledger',refunds:'Refunds',
     reviews:'Reviews',reports:'Reports',
-    disputes:'Disputes & Failed Orders',payconfig:'Payment Configuration'};
+    disputes:'Disputes & Failed Orders',payconfig:'Payment Configuration',
+    'delete-logs':'Delete Audit Logs'};
   document.getElementById('page-title').textContent=titles[name]||name;
   const loaders={orders:loadOrders,users:loadUsers,riders:loadRiders,
     restaurants:loadRestaurants,menu:()=>{loadRestaurantDropdowns();loadMenuItems();},
     payments:loadPayments,transactions:loadTransactions,refunds:loadRefunds,
-    reviews:loadReviews,disputes:loadDisputes,payconfig:loadPayConfig};
+    reviews:loadReviews,disputes:loadDisputes,payconfig:loadPayConfig,
+    'delete-logs':loadDeleteLogs};
   if(loaders[name])loaders[name]();
 }
 
@@ -450,6 +521,7 @@ async function loadOrders(){
           '<select class="inline-select" onchange="assignRider(\''+o.id+'\',this.value);this.value=\'\'">'+
             '<option value="">Assign rider...</option>'+rOpts+
           '</select>'+
+          '<button class="btn btn-danger btn-sm" onclick="adminDeleteOrder(\''+o.id+'\')"><i class="fas fa-trash"></i></button>'+
         '</div></td>'+
       '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('orders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
@@ -460,6 +532,61 @@ async function updateOrderStatus(id,status){
   try{const d=await api('/api/admin/orders/'+id+'/status',{method:'PATCH',body:JSON.stringify({order_status:status})});
     toast(d.message||'Updated',d.success?'success':'error');if(d.success)loadOrders();}
   catch(e){toast(e.message,'error');}
+}
+
+// Generic confirm dialog
+// requireTyped=true forces the user to type "DELETE" before the button activates
+function showConfirm(title, msg, onConfirm, icon='fa-trash', iconBg='#ffebee', iconColor='#e74c3c', requireTyped=false) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  document.getElementById('confirm-icon').innerHTML    = '<i class="fas '+icon+'"></i>';
+  document.getElementById('confirm-icon').style.background = iconBg;
+  document.getElementById('confirm-icon').style.color      = iconColor;
+
+  // Show / hide the typed confirmation input
+  const typeWrap = document.getElementById('confirm-type-wrap');
+  const typeInput = document.getElementById('confirm-type-input');
+  typeWrap.style.display = requireTyped ? 'block' : 'none';
+  typeInput.value = '';
+
+  const okBtn = document.getElementById('confirm-ok-btn');
+  const newBtn = okBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newBtn, okBtn);
+
+  if(requireTyped){
+    newBtn.disabled = true;
+    newBtn.style.opacity = '0.5';
+    // Re-attach input listener on the fresh input element
+    const freshInput = document.getElementById('confirm-type-input');
+    freshInput.oninput = () => {
+      const ok = freshInput.value.trim().toUpperCase() === 'DELETE';
+      newBtn.disabled = !ok;
+      newBtn.style.opacity = ok ? '1' : '0.5';
+    };
+  }
+
+  newBtn.addEventListener('click', () => {
+    if(requireTyped && document.getElementById('confirm-type-input').value.trim().toUpperCase() !== 'DELETE') return;
+    closeModal('confirm-modal');
+    onConfirm();
+  });
+  openModal('confirm-modal');
+}
+
+async function adminDeleteOrder(id){
+  showConfirm(
+    'Soft Delete Order #'+id+'?',
+    'This hides the order from the dashboard (soft delete). The record is preserved in the database and can be restored from Delete Logs. Active or paid orders cannot be deleted.',
+    async () => {
+      try{
+        const d=await api('/api/orders/'+id,{method:'DELETE'});
+        toast(d.message||'Deleted',d.success?'success':'error');
+        if(d.success)loadOrders();
+      }catch(e){toast(e.message,'error');}
+    },
+    'fa-trash', '#ffebee', '#e74c3c',
+    true
+  );
 }
 async function updatePayStatus(id,status){
   if(!status)return;
@@ -497,6 +624,7 @@ async function loadUsers(){
             ?'<button class="btn btn-success btn-sm" onclick="setUserStatus('+u.id+',\'active\')"><i class="fas fa-check"></i> Activate</button>'
             :'<button class="btn btn-danger btn-sm" onclick="setUserStatus('+u.id+',\'suspended\')"><i class="fas fa-ban"></i> Suspend</button>')+
           '<button class="btn btn-warning btn-sm" onclick="adminResetPw('+u.id+',\''+u.name+'\')"><i class="fas fa-key"></i> Reset PW</button>'+
+          '<button class="btn btn-danger btn-sm" title="Delete user" onclick="adminDeleteUser('+u.id+',\''+u.name.replace(/'/g,'')+'\',\''+u.role+'\')"><i class="fas fa-trash"></i></button>'+
         '</div></td>'+
       '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('users-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
@@ -537,6 +665,7 @@ async function loadRiders(){
         '<td><div class="action-group">'+
           (r.approval_status!=='approved'?'<button class="btn btn-success btn-sm" onclick="approveRider('+r.id+')"><i class="fas fa-check"></i> Approve</button>':'')+
           (r.approval_status!=='rejected'?'<button class="btn btn-danger btn-sm" onclick="rejectRider('+r.id+')"><i class="fas fa-times"></i> Reject</button>':'')+
+          '<button class="btn btn-danger btn-sm" title="Delete rider" onclick="adminDeleteUser('+r.id+',\''+r.name.replace(/'/g,'')+'\',\'rider\')"><i class="fas fa-trash"></i></button>'+
         '</div></td>'+
       '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('riders-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
@@ -613,10 +742,16 @@ async function saveRestaurant(){
   catch(e){toast(e.message,'error');}
 }
 async function deleteRestaurant(id){
-  if(!confirm('Delete this restaurant? This cannot be undone.'))return;
-  try{const d=await api('/api/admin/restaurants/'+id,{method:'DELETE'});
-    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadRestaurants();}
-  catch(e){toast(e.message,'error');}
+  showConfirm(
+    'Soft Delete Restaurant #'+id+'?',
+    'This hides the restaurant and its menu items from the dashboard. The data is preserved and can be restored from Delete Logs.',
+    async () => {
+      try{const d=await api('/api/admin/restaurants/'+id,{method:'DELETE'});
+        toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadRestaurants();}
+      catch(e){toast(e.message,'error');}
+    },
+    'fa-store', '#ffebee', '#e74c3c', true
+  );
 }
 
 // MENU ITEMS
@@ -696,10 +831,16 @@ async function toggleMenuItem(id){
   catch(e){toast(e.message,'error');}
 }
 async function deleteMenuItem(id){
-  if(!confirm('Delete this menu item?'))return;
-  try{const d=await api('/api/admin/menu-items/'+id,{method:'DELETE'});
-    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadMenuItems();}
-  catch(e){toast(e.message,'error');}
+  showConfirm(
+    'Soft Delete Menu Item #'+id+'?',
+    'This hides the menu item from the restaurant. The data is preserved and can be restored from Delete Logs.',
+    async () => {
+      try{const d=await api('/api/admin/menu-items/'+id,{method:'DELETE'});
+        toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadMenuItems();}
+      catch(e){toast(e.message,'error');}
+    },
+    'fa-utensils', '#ffebee', '#e74c3c', true
+  );
 }
 
 // PAYMENTS
@@ -737,7 +878,10 @@ async function loadPayments(){
         '<td>'+badge(p.status)+'</td>'+
         '<td style="font-size:.72rem;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+(p.gateway_tx_id||'-')+'</td>'+
         '<td>'+fmtDate(p.created_at)+'</td>'+
-        '<td>'+(p.status==='completed'?'<button class="btn btn-warning btn-sm" onclick="refundPayment('+p.id+')"><i class="fas fa-undo"></i> Refund</button>':'')+'</td>'+
+        '<td><div class="action-group">'+
+          (p.status==='completed'?'<button class="btn btn-warning btn-sm" onclick="refundPayment('+p.id+')"><i class="fas fa-undo"></i> Refund</button>':'')+
+          (p.status!=='completed'?'<button class="btn btn-danger btn-sm" title="Void payment" onclick="adminDeletePayment('+p.id+',\''+p.payment_ref+'\')"><i class="fas fa-trash"></i></button>':'')+
+        '</div></td>'+
       '</tr>').join('')+'</tbody></table>';
   }catch(e){document.getElementById('payments-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
@@ -768,10 +912,16 @@ async function refundPayment(id){
 }
 
 async function deleteReview(id){
-  if(!confirm('Delete this review?'))return;
-  try{const d=await api('/api/admin/reviews/'+id,{method:'DELETE'});
-    toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadReviews();}
-  catch(e){toast(e.message,'error');}
+  showConfirm(
+    'Soft Delete Review #'+id+'?',
+    'This hides the review from the dashboard. The data is preserved and can be restored from Delete Logs.',
+    async () => {
+      try{const d=await api('/api/admin/reviews/'+id,{method:'DELETE'});
+        toast(d.message||'Deleted',d.success?'success':'error');if(d.success)loadReviews();}
+      catch(e){toast(e.message,'error');}
+    },
+    'fa-star', '#ffebee', '#e74c3c', true
+  );
 }
 
 // REPORTS
@@ -796,6 +946,111 @@ async function loadReport(){
       rows.map(r=>`<tr><td>${r.period}</td><td>${r.orders_count}</td><td>${parseFloat(r.revenue||0).toFixed(2)}</td></tr>`).join('')+
       '</tbody></table>';
   }catch(e){document.getElementById('report-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+// ── ADMIN DELETE FUNCTIONS ────────────────────────────────────
+
+// Delete user (customer or rider) — soft delete
+function adminDeleteUser(id, name, role){
+  const label = role === 'rider' ? 'Rider' : 'Customer';
+  showConfirm(
+    'Soft Delete '+label+': '+name+'?',
+    'This deactivates the account and anonymises personal data. Orders and payment history are preserved. The account can be partially restored from Delete Logs.',
+    async () => {
+      try{
+        const d=await api('/api/admin/users/'+id,{method:'DELETE',body:JSON.stringify({reason:'Admin soft-deleted via dashboard'})});
+        toast(d.message||'Deleted',d.success?'success':'error');
+        if(d.success){ loadUsers(); if(role==='rider') loadRiders(); }
+      }catch(e){toast(e.message,'error');}
+    },
+    'fa-user-slash', '#ffebee', '#e74c3c', true
+  );
+}
+
+// Void/delete a non-completed payment record
+function adminDeletePayment(id, ref){
+  showConfirm(
+    'Void Payment '+ref+'?',
+    'This marks the payment as cancelled/voided. Only non-completed payments can be voided. Completed payments must be refunded instead.',
+    async () => {
+      try{
+        const d=await api('/api/admin/payments/'+id,{method:'DELETE',body:JSON.stringify({reason:'Admin voided via dashboard'})});
+        toast(d.message||'Voided',d.success?'success':'error');
+        if(d.success) loadPayments();
+      }catch(e){toast(e.message,'error');}
+    },
+    'fa-credit-card', '#ffebee', '#e74c3c', true
+  );
+}
+
+// DELETE LOGS
+async function loadDeleteLogs(){
+  document.getElementById('delete-logs-wrap').innerHTML='<div class="loading"><i class="fas fa-spinner"></i></div>';
+  const table=document.getElementById('f-dl-table').value;
+  const from=document.getElementById('f-dl-from').value;
+  const to=document.getElementById('f-dl-to').value;
+  let url='/api/admin/delete-logs?';
+  if(table)url+='table_name='+table+'&';
+  if(from)url+='from='+from+'&';
+  if(to)url+='to='+to;
+  try{
+    const d=await api(url);
+    const logs=d.data||[];
+    if(!logs.length){
+      document.getElementById('delete-logs-wrap').innerHTML='<div class="empty-state"><i class="fas fa-history"></i>No delete logs found</div>';
+      return;
+    }
+    const tableColors={orders:'#ffebee',restaurants:'#fff3e0',menu_items:'#f3e5f5',users:'#e3f2fd',payments:'#e8f5e9',reviews:'#fce4ec'};
+    // Restore endpoint map per table
+    const restoreEndpoints={
+      orders:   id=>`/api/admin/orders/${id}/restore`,
+      restaurants: id=>`/api/admin/restaurants/${id}/restore`,
+      menu_items:  id=>`/api/admin/menu-items/${id}/restore`,
+      reviews:  id=>`/api/admin/reviews/${id}/restore`,
+      users:    id=>`/api/admin/users/${id}/restore`
+    };
+    document.getElementById('delete-logs-wrap').innerHTML=
+      '<div style="padding:10px 18px;font-size:.78rem;color:#666">Showing <strong>'+logs.length+'</strong> deletion records &nbsp;|&nbsp; <i class="fas fa-undo" style="color:#27ae60"></i> Click <strong>Restore</strong> to undo a soft delete</div>'+
+      '<table><thead><tr><th>#</th><th>Admin</th><th>Table</th><th>Record ID</th><th>Record</th><th>Reason</th><th>Deleted At</th><th>Action</th></tr></thead><tbody>'+
+      logs.map(l=>{
+        const canRestore=!!restoreEndpoints[l.table_name];
+        return '<tr>'+
+          '<td style="font-size:.75rem">'+l.id+'</td>'+
+          '<td style="font-size:.78rem"><i class="fas fa-shield-alt" style="color:#ff6b35"></i> Admin #'+l.admin_id+'<br><span style="color:#999;font-size:.7rem">'+l.admin_email+'</span></td>'+
+          '<td><span style="background:'+(tableColors[l.table_name]||'#f5f5f5')+';padding:3px 8px;border-radius:10px;font-size:.72rem;font-weight:600">'+l.table_name+'</span></td>'+
+          '<td style="font-family:monospace;font-size:.78rem">'+l.record_id+'</td>'+
+          '<td style="font-size:.78rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.record_label||'-')+'</td>'+
+          '<td style="font-size:.75rem;color:#666">'+(l.reason||'-')+'</td>'+
+          '<td style="font-size:.75rem">'+fmtDate(l.deleted_at)+'</td>'+
+          '<td>'+(canRestore
+            ?'<button class="btn btn-success btn-sm" onclick="restoreRecord(\''+l.table_name+'\',\''+l.record_id+'\',this)"><i class="fas fa-undo"></i> Restore</button>'
+            :'<span style="font-size:.72rem;color:#aaa">N/A</span>')+
+          '</td>'+
+        '</tr>';
+      }).join('')+'</tbody></table>';
+  }catch(e){document.getElementById('delete-logs-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+async function restoreRecord(tableName, recordId, btn){
+  const endpoints={
+    orders:      '/api/admin/orders/'+recordId+'/restore',
+    restaurants: '/api/admin/restaurants/'+recordId+'/restore',
+    menu_items:  '/api/admin/menu-items/'+recordId+'/restore',
+    reviews:     '/api/admin/reviews/'+recordId+'/restore',
+    users:       '/api/admin/users/'+recordId+'/restore'
+  };
+  const endpoint=endpoints[tableName];
+  if(!endpoint){toast('Restore not supported for '+tableName,'error');return;}
+  if(!confirm('Restore this '+tableName.replace('_',' ')+' record?'))return;
+  try{
+    const d=await api(endpoint,{method:'PATCH'});
+    toast(d.message||'Restored',d.success?'success':'error');
+    if(d.success){
+      btn.disabled=true;
+      btn.innerHTML='<i class="fas fa-check"></i> Restored';
+      btn.style.background='#e8f5e9';btn.style.color='#2e7d32';
+    }
+  }catch(e){toast(e.message,'error');}
 }
 
 // INIT
@@ -976,10 +1231,13 @@ async function loadRefunds(){
     const d=await api(url);
     const refunds=d.data||[];
     const totalRefunded=parseFloat(d.total_refunded||0).toFixed(2);
+    const pending=refunds.filter(r=>r.status==='pending').length;
+    const completed=refunds.filter(r=>r.status==='completed').length;
     const summary='<div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #f0f0f0">'+
       '<div style="background:#ffebee;color:#c62828;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-undo"></i> Total Refunded: <strong>ETB '+totalRefunded+'</strong></div>'+
       '<div style="background:#f3e5f5;color:#6a1b9a;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-list"></i> Count: <strong>'+refunds.length+'</strong></div>'+
-      '<div style="background:#fff3e0;color:#e65100;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-clock"></i> Pending: <strong>'+refunds.filter(r=>r.status==='pending').length+'</strong></div>'+
+      '<div style="background:#fff3e0;color:#e65100;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-clock"></i> Pending: <strong>'+pending+'</strong></div>'+
+      '<div style="background:#e8f5e9;color:#2e7d32;padding:7px 12px;border-radius:7px;font-size:.78rem"><i class="fas fa-check-circle"></i> Completed: <strong>'+completed+'</strong></div>'+
       '</div>';
     if(!refunds.length){document.getElementById('refunds-wrap').innerHTML=summary+'<div class="empty-state"><i class="fas fa-undo"></i>No refunds found</div>';return;}
     document.getElementById('refunds-wrap').innerHTML=summary+
@@ -995,7 +1253,12 @@ async function loadRefunds(){
         '<td style="font-size:.75rem">'+(r.initiated_by_name||r.initiated_role||'-')+'</td>'+
         '<td>'+fmtDate(r.created_at)+'</td>'+
         '<td><div class="action-group">'+
+          '<button class="btn btn-primary btn-sm" onclick="viewRefundDetail('+JSON.stringify(r).replace(/"/g,'&quot;')+')"><i class="fas fa-eye"></i></button>'+
           (r.status==='pending'?
+            '<button class="btn btn-success btn-sm" onclick="processRefund('+r.id+',\'completed\')"><i class="fas fa-check"></i> Complete</button>'+
+            '<button class="btn btn-warning btn-sm" onclick="processRefund('+r.id+',\'processing\')"><i class="fas fa-spinner"></i> Processing</button>'+
+            '<button class="btn btn-danger btn-sm" onclick="processRefund('+r.id+',\'failed\')"><i class="fas fa-times"></i> Fail</button>':
+            r.status==='processing'?
             '<button class="btn btn-success btn-sm" onclick="processRefund('+r.id+',\'completed\')"><i class="fas fa-check"></i> Complete</button>'+
             '<button class="btn btn-danger btn-sm" onclick="processRefund('+r.id+',\'failed\')"><i class="fas fa-times"></i> Fail</button>':
             '')+
@@ -1004,14 +1267,84 @@ async function loadRefunds(){
   }catch(e){document.getElementById('refunds-wrap').innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
+function viewRefundDetail(r){
+  const statusColor={pending:'#e65100',processing:'#1565c0',completed:'#2e7d32',failed:'#c62828'};
+  const col=statusColor[r.status]||'#333';
+  document.getElementById('refund-detail-body').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px">'+
+    '<div><span style="color:#999;font-size:.75rem">Refund Ref</span><br><strong style="font-size:.8rem">'+r.refund_ref+'</strong></div>'+
+    '<div><span style="color:#999;font-size:.75rem">Status</span><br>'+badge(r.status)+'</div>'+
+    '<div><span style="color:#999;font-size:.75rem">Order</span><br><strong>#'+(r.order_id||'-')+'</strong></div>'+
+    '<div><span style="color:#999;font-size:.75rem">Amount</span><br><strong style="color:#e74c3c;font-size:1rem">ETB '+parseFloat(r.amount||0).toFixed(2)+'</strong></div>'+
+    '<div><span style="color:#999;font-size:.75rem">Customer</span><br>'+(r.customer_name||'-')+'</div>'+
+    '<div><span style="color:#999;font-size:.75rem">Refund Method</span><br>'+(r.method||'-')+'</div>'+
+    '<div><span style="color:#999;font-size:.75rem">Reason Type</span><br>'+(r.reason||'-').replace(/_/g,' ')+'</div>'+
+    '<div><span style="color:#999;font-size:.75rem">Initiated By</span><br>'+(r.initiated_by_name||r.initiated_role||'-')+'</div>'+
+    '<div style="grid-column:1/-1"><span style="color:#999;font-size:.75rem">Reason Detail</span><br>'+(r.reason_detail||'-')+'</div>'+
+    (r.gateway_ref?'<div style="grid-column:1/-1"><span style="color:#999;font-size:.75rem">Gateway Ref</span><br><code>'+r.gateway_ref+'</code></div>':'')+
+    '<div><span style="color:#999;font-size:.75rem">Created</span><br>'+fmtDate(r.created_at)+'</div>'+
+    (r.processed_at?'<div><span style="color:#999;font-size:.75rem">Processed</span><br>'+fmtDate(r.processed_at)+'</div>':'')+
+    '</div>'+
+    (r.order_total?'<div style="margin-top:12px;padding:10px;background:#fff3e0;border-radius:6px;font-size:.8rem"><i class="fas fa-info-circle" style="color:#e65100"></i> Order total was <strong>ETB '+parseFloat(r.order_total).toFixed(2)+'</strong></div>':'')+
+    (r.status==='pending'?
+      '<div style="margin-top:14px;display:flex;gap:8px">'+
+      '<button class="btn btn-success" onclick="processRefund('+r.id+',\'completed\');closeModal(\'refund-detail-modal\')"><i class="fas fa-check"></i> Mark Completed</button>'+
+      '<button class="btn btn-warning" onclick="processRefund('+r.id+',\'processing\');closeModal(\'refund-detail-modal\')"><i class="fas fa-spinner"></i> Mark Processing</button>'+
+      '<button class="btn btn-danger" onclick="processRefund('+r.id+',\'failed\');closeModal(\'refund-detail-modal\')"><i class="fas fa-times"></i> Mark Failed</button>'+
+      '</div>':'');
+  openModal('refund-detail-modal');
+}
+
 async function processRefund(id, status){
-  const gateway_ref = status==='completed' ? prompt('Gateway reference (optional):','') : null;
+  const gateway_ref = status==='completed' ? prompt('Gateway reference (optional, press OK to skip):','') : null;
   if(gateway_ref===null && status==='completed') return;
   try{
-    const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref})});
+    const d=await api('/api/admin/refunds/'+id+'/status',{method:'PATCH',body:JSON.stringify({status,gateway_ref:gateway_ref||null})});
     toast(d.message||'Updated',d.success?'success':'error');
     if(d.success)loadRefunds();
   }catch(e){toast(e.message,'error');}
+}
+
+// Order lookup for refund form
+async function lookupOrderForRefund(){
+  const order_id=document.getElementById('rf-order-id').value.trim();
+  const preview=document.getElementById('rf-order-preview');
+  const msg=document.getElementById('rf-msg');
+  if(!order_id){msg.innerHTML='<div class="error-msg">Enter an Order ID first.</div>';return;}
+  try{
+    const d=await api('/api/admin/orders?search='+encodeURIComponent(order_id));
+    const orders=d.data||[];
+    const o=orders.find(x=>x.id===order_id);
+    if(!o){preview.style.display='none';msg.innerHTML='<div class="error-msg">Order not found: '+order_id+'</div>';return;}
+    msg.innerHTML='';
+    const canRefund=['paid','awaiting_payment'].includes(o.payment_status);
+    preview.style.display='block';
+    preview.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'+
+      '<div>'+
+        '<div style="font-weight:600;margin-bottom:4px"><i class="fas fa-receipt" style="color:#ff6b35"></i> Order #'+o.id+'</div>'+
+        '<div>Customer: <strong>'+(o.customer_name||o.user_name||'-')+'</strong></div>'+
+        '<div>Amount: <strong style="color:#e74c3c">ETB '+parseFloat(o.total||0).toFixed(2)+'</strong></div>'+
+        '<div>Payment: '+badge(o.payment_status)+' &nbsp; Order: '+badge(o.order_status)+'</div>'+
+        '<div style="font-size:.75rem;color:#999;margin-top:4px">Method: '+(o.payment_method||'-')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        (canRefund
+          ? '<span style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:12px;font-size:.75rem"><i class="fas fa-check-circle"></i> Eligible for refund</span>'
+          : '<span style="background:#ffebee;color:#c62828;padding:4px 10px;border-radius:12px;font-size:.75rem"><i class="fas fa-times-circle"></i> Not eligible ('+o.payment_status+')</span>')+
+      '</div>'+
+      '</div>';
+    // Auto-set method based on payment method
+    if(o.payment_method==='wallet') document.getElementById('rf-method').value='wallet';
+    else document.getElementById('rf-method').value='original';
+    // Auto-set reason type if cancelled/rejected
+    if(['cancelled','rejected'].includes(o.order_status)) document.getElementById('rf-reason-type').value='order_cancelled';
+  }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
+}
+
+function clearOrderPreview(){
+  document.getElementById('rf-order-preview').style.display='none';
+  document.getElementById('rf-msg').innerHTML='';
 }
 
 async function initiateRefund(){
@@ -1024,11 +1357,12 @@ async function initiateRefund(){
   try{
     const d=await api('/api/admin/refunds',{method:'POST',body:JSON.stringify({order_id,reason,reason_type,refund_method})});
     if(!d.success)throw new Error(d.message);
-    msg.innerHTML='<div style="background:#e8f5e9;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px"><i class="fas fa-check-circle"></i> Refund initiated! Ref: '+d.refund_ref+'</div>';
+    msg.innerHTML='<div style="background:#e8f5e9;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px"><i class="fas fa-check-circle"></i> Refund initiated! Ref: <strong>'+d.refund_ref+'</strong></div>';
     document.getElementById('rf-order-id').value='';
     document.getElementById('rf-reason').value='';
+    document.getElementById('rf-order-preview').style.display='none';
     loadRefunds();
-    setTimeout(()=>msg.innerHTML='',5000);
+    setTimeout(()=>msg.innerHTML='',6000);
   }catch(e){msg.innerHTML='<div class="error-msg">'+e.message+'</div>';}
 }
 
